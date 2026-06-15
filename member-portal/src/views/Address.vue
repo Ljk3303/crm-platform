@@ -1,0 +1,9 @@
+<template><div><h2>📍 收货地址</h2><el-button type="primary" size="small" @click="showForm=true" style="margin-bottom:16px">新增地址</el-button><div v-for="a in addresses" :key="a.id" class="addr-card" :class="{default:a.is_default}"><div><b>{{ a.receiver_name }}</b> {{ a.phone }}</div><div>{{ a.province }}{{ a.city }}{{ a.district }} {{ a.detail }}</div><el-tag v-if="a.is_default" type="warning" size="small">默认</el-tag></div>
+    <el-dialog v-model="showForm" title="新增地址" width="420px"><el-form label-width="80px"><el-form-item label="收货人"><el-input v-model="form.receiverName"/></el-form-item><el-form-item label="手机号"><el-input v-model="form.phone"/></el-form-item><el-form-item label="省"><el-input v-model="form.province"/></el-form-item><el-form-item label="市"><el-input v-model="form.city"/></el-form-item><el-form-item label="区"><el-input v-model="form.district"/></el-form-item><el-form-item label="详细地址"><el-input v-model="form.detail"/></el-form-item></el-form><template #footer><el-button @click="showForm=false">取消</el-button><el-button type="primary" @click="addAddr">保存</el-button></template></el-dialog>
+</div></template>
+<script setup>import { ref, reactive, onMounted } from 'vue'; import request from '@/utils/request';
+const addresses = ref([]); const showForm = ref(false); const form = reactive({ receiverName:'',phone:'',province:'',city:'',district:'',detail:'' });
+onMounted(async () => { try { addresses.value = await request.get('/address/list') } catch {} });
+async function addAddr() { try { await request.post('/address/add', form); showForm.value = false; addresses.value = await request.get('/address/list') } catch {} }
+</script>
+<style scoped>.addr-card{padding:16px;background:#fff;border-radius:12px;margin-bottom:8px;border:1px solid #F0F0F0}.addr-card.default{border-color:#F7B731}</style>

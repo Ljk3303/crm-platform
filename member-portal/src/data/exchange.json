@@ -1,0 +1,8 @@
+[
+  {"id":1,"name":"满100减10优惠券","points":200,"type":"coupon","image":"🎫","stock":50,"desc":"全场通用"},
+  {"id":2,"name":"满200减30优惠券","points":500,"type":"coupon","image":"🎟️","stock":30,"desc":"全场通用"},
+  {"id":3,"name":"50元现金红包","points":1000,"type":"cash","image":"🧧","stock":10,"desc":"可直接提现"},
+  {"id":4,"name":"MINISO联名保温杯","points":800,"type":"gift","image":"🥤","stock":20,"desc":"不锈钢材质"},
+  {"id":5,"name":"MINISO帆布袋","points":300,"type":"gift","image":"👜","stock":50,"desc":"环保帆布"},
+  {"id":6,"name":"会员专属折扣卡(9折)","points":600,"type":"discount","image":"💳","stock":15,"desc":"有效期30天"}
+]
