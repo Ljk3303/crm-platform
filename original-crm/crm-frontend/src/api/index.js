@@ -220,6 +220,7 @@ export const analyticsApi = {
   funnel: () => request.get('/opportunities/funnel'),
   customerSource: () => request.get('/analytics/customer-source'),
   employeeRanking: () => request.get('/analytics/employee-ranking'),
+  recentActivities: () => request.get('/analytics/recent-activities'),
 }
 
 export const configApi = {

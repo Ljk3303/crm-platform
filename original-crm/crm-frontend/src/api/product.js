@@ -33,3 +33,11 @@ export function getPriceStrategies(productId) {
 export function savePriceStrategies(productId, data) {
   return request({ url: `/products/${productId}/prices`, method: 'post', data })
 }
+
+export const productApi = {
+  list: (params) => request.get('/products/list', { params }),
+  getById: (id) => request.get(`/products/${id}`),
+  top: (n = 5) => request.get(`/products/top?n=${n}`),
+  categories: () => request.get('/products/categories'),
+  analytics: () => request.get('/products/analytics'),
+}

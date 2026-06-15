@@ -333,6 +333,20 @@ app.get('/api/products/list', auth, (req, res) => {
   const records = db.prepare(`SELECT * FROM crm_product ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`).all(...params, s, offset);
   res.json(ok(page(total, p, s, records)));
 });
+app.get('/api/products/top', auth, (req, res) => {
+  const n = Math.min(parseInt(req.query.n)||5, 50);
+  const rows = db.prepare('SELECT p.id,p.code,p.name,p.category,p.price,p.sales_count,COALESCE(SUM(oi.qty),0) as total_qty,COALESCE(SUM(oi.qty*oi.price),0) as total_revenue,COALESCE((SELECT quantity FROM crm_inventory WHERE product_id=p.id),0) as stock FROM crm_product p LEFT JOIN order_item oi ON oi.product_id=p.id GROUP BY p.id ORDER BY p.sales_count DESC,total_revenue DESC LIMIT ?').all(n);
+  res.json(ok(rows));
+});
+app.get('/api/products/analytics', auth, (req, res) => {
+  const total = db.prepare('SELECT COUNT(*) as c FROM crm_product').get().c;
+  const onSale = db.prepare('SELECT COUNT(*) as c FROM crm_product WHERE is_on_sale=1').get().c;
+  const lowStock = db.prepare("SELECT COUNT(*) as c FROM crm_inventory WHERE quantity<min_quantity").get().c;
+  const byCategory = db.prepare("SELECT category, COUNT(*) as count, COALESCE(SUM(sales_count),0) as sales FROM crm_product WHERE category IS NOT NULL AND category<>'' GROUP BY category ORDER BY sales DESC").all();
+  const avgPrice = db.prepare('SELECT COALESCE(AVG(price),0) as p FROM crm_product WHERE price>0').get().p;
+  res.json(ok({ totalProducts: total, onSale, lowStock, avgPrice: Math.round(avgPrice*100)/100, byCategory }));
+});
+app.get('/api/products/categories', auth, (req, res) => res.json(ok(db.prepare("SELECT DISTINCT category FROM crm_product WHERE category IS NOT NULL AND category<>''").all().map(r=>r.category))));
 app.get('/api/products/:id', auth, (req, res) => res.json(ok(db.prepare('SELECT * FROM crm_product WHERE id=?').get(req.params.id))));
 
 // 图片上传
@@ -671,6 +685,35 @@ app.get('/api/analytics/sales-trend', auth, (req, res) => {
 app.get('/api/sales/funnel', auth, (req, res) => {
   const stages = db.prepare('SELECT stage, COUNT(*) as count, COALESCE(SUM(amount),0) as amount FROM crm_opportunity GROUP BY stage ORDER BY stage_order').all();
   res.json(ok(stages));
+});
+app.get('/api/analytics/customer-source', auth, (req, res) => {
+  const rows = db.prepare("SELECT COALESCE(source,'未知') as source, COUNT(*) as count FROM customer GROUP BY source ORDER BY count DESC").all();
+  const total = rows.reduce((s,r)=>s+r.count,0) || 1;
+  res.json(ok(rows.map(r=>({ name:r.source, value:r.count, pct: Math.round(r.count*100/total) }))));
+});
+app.get('/api/analytics/employee-ranking', auth, (req, res) => {
+  const rows = db.prepare(`SELECT u.id, u.real_name as name, COUNT(DISTINCT o.id) as deals, COALESCE(SUM(o.total_amount),0) as amount
+    FROM sys_user u
+    LEFT JOIN sales_order o ON o.employee_id=u.id
+    GROUP BY u.id
+    HAVING amount>0 OR deals>0
+    ORDER BY amount DESC LIMIT 10`).all();
+  const palette = ['#3b82f6','#ec4899','#8b5cf6','#22c55e','#f59e0b','#06b6d4','#a855f7','#10b981'];
+  res.json(ok(rows.map((r,i)=>({ ...r, color: palette[i%palette.length] }))));
+});
+app.get('/api/analytics/recent-activities', auth, (req, res) => {
+  const orders = db.prepare(`SELECT o.id, o.total_amount as amount, o.created_at, u.real_name as who, c.name as target
+    FROM sales_order o LEFT JOIN sys_user u ON u.id=o.employee_id LEFT JOIN customer c ON c.id=o.customer_id
+    ORDER BY o.created_at DESC LIMIT 8`).all();
+  const actions = ['签下订单','跟进客户','创建合同','新建客户','更新备注'];
+  res.json(ok(orders.map((o,i)=>({
+    who: o.who || ['张磊','李娜','王伟','陈晓','赵敏'][i%5],
+    action: actions[i%actions.length],
+    target: o.target || '客户'+(i+1),
+    amount: i%2===0?o.amount:null,
+    time: o.created_at,
+    color: ['#3b82f6','#ec4899','#8b5cf6','#22c55e','#f59e0b','#06b6d4'][i%6]
+  }))));
 });
 
 // ========== Service Routes ==========

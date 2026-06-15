@@ -53,6 +53,7 @@ const KnowledgeBase = () => import('@/views/extend/KnowledgeBase.vue')
 const CampusAgent = () => import('@/views/extend/CampusAgent.vue')
 const GroupBuyMgr = () => import('@/views/extend/GroupBuyManage.vue')
 const AuditLog = () => import('@/views/extend/AuditLog.vue')
+const AiAssistantPage = () => import('@/views/ai/AiAssistantPage.vue')
 const StudentProfiles = () => import('@/views/student/StudentProfiles.vue')
 const StudentTags = () => import('@/views/student/StudentTags.vue')
 const StudentRfm = () => import('@/views/student/StudentRfm.vue')
@@ -124,6 +125,7 @@ const routes = [
       { path: 'campus-agent', name: 'CampusAgent', component: CampusAgent, meta: { title: '校园代理', icon: 'School' } },
       { path: 'group-buy-mgr', name: 'GroupBuyMgr', component: GroupBuyMgr, meta: { title: '拼团管理', icon: 'Connection' } },
       { path: 'audit-log', name: 'AuditLog', component: AuditLog, meta: { title: '操作日志', icon: 'List' } },
+      { path: 'ai-assistant', name: 'AiAssistantPage', component: AiAssistantPage, meta: { title: 'AI 智能助手', icon: 'MagicStick' } },
     ]
   }
 ]
