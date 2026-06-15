@@ -298,6 +298,16 @@ app.get('/api/opportunities/list', auth, (req, res) => {
   const records = db.prepare('SELECT * FROM crm_opportunity ORDER BY created_at DESC LIMIT ? OFFSET ?').all(s, offset);
   res.json(ok(page(total, p, s, records)));
 });
+app.get('/api/opportunities/funnel', auth, (req, res) => {
+  // 按标准销售漏斗顺序（即使数据库中stage_order=0也能正确排序）
+  const stageOrder = ['初步接触','需求确认','方案报价','商务谈判','合同签约'];
+  const stages = db.prepare('SELECT stage, COUNT(*) as count, COALESCE(SUM(amount),0) as amount FROM crm_opportunity GROUP BY stage').all();
+  const sorted = stageOrder.map(name => {
+    const found = stages.find(s => s.stage === name) || { stage: name, count: 0, amount: 0 };
+    return { ...found, stage_order: stageOrder.indexOf(name) };
+  }).sort((a, b) => a.stage_order - b.stage_order);
+  res.json(ok(sorted));
+});
 app.get('/api/opportunities/:id', auth, (req, res) => {
   const opp = db.prepare('SELECT * FROM crm_opportunity WHERE id=?').get(req.params.id);
   const team = db.prepare('SELECT * FROM crm_opportunity_team WHERE opportunity_id=?').all(req.params.id);
@@ -317,8 +327,14 @@ app.put('/api/opportunities/:id/stage', auth, (req, res) => {
 });
 app.post('/api/opportunities/team', auth, (req, res) => { db.prepare('INSERT INTO crm_opportunity_team(opportunity_id,user_id,role) VALUES (?,?,?)').run(req.body.opportunityId,req.body.userId,req.body.role||'成员'); res.json(ok(null)); });
 app.get('/api/opportunities/funnel', auth, (req, res) => {
-  const stages = db.prepare('SELECT stage, COUNT(*) as count, SUM(amount) as amount FROM crm_opportunity GROUP BY stage ORDER BY stage_order').all();
-  res.json(ok(stages));
+  // 按标准销售漏斗顺序（即使数据库中stage_order=0也能正确排序）
+  const stageOrder = ['初步接触','需求确认','方案报价','商务谈判','合同签约'];
+  const stages = db.prepare('SELECT stage, COUNT(*) as count, COALESCE(SUM(amount),0) as amount FROM crm_opportunity GROUP BY stage').all();
+  const sorted = stageOrder.map(name => {
+    const found = stages.find(s => s.stage === name) || { stage: name, count: 0, amount: 0 };
+    return { ...found, stage_order: stageOrder.indexOf(name) };
+  }).sort((a, b) => a.stage_order - b.stage_order);
+  res.json(ok(sorted));
 });
 app.delete('/api/opportunities/:id', auth, (req, res) => { db.prepare('DELETE FROM crm_opportunity WHERE id=?').run(req.params.id); res.json(ok(null)); });
 
@@ -747,9 +763,19 @@ app.get('/api/dashboard/stats', auth, (req, res) => {
   }));
 });
 app.get('/api/analytics/sales-trend', auth, (req, res) => {
+  // 基于真实订单表，按月聚合，null月份填0
   const months = parseInt(req.query.months) || 12;
-  const data = []; const now = new Date();
-  for (let i = months-1; i >= 0; i--) { const m = new Date(now.getFullYear(), now.getMonth()-i, 1); data.push({ month: m.toISOString().substring(0,7), amount: Math.floor(15000+Math.random()*35000) }); }
+  const now = new Date();
+  const rows = db.prepare(`SELECT strftime('%Y-%m', created_at) as month, COALESCE(SUM(total_amount),0) as amount
+    FROM sales_order WHERE created_at >= date('now', '-'||?||' months') GROUP BY month ORDER BY month`).all(months);
+  // 补全所有月份
+  const data = [];
+  for (let i = months-1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    const key = d.toISOString().substring(0,7);
+    const found = rows.find(r => r.month === key);
+    data.push({ month: key, amount: found ? found.amount : 0 });
+  }
   res.json(ok(data));
 });
 app.get('/api/sales/funnel', auth, (req, res) => {

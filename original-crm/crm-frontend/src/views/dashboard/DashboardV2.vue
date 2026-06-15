@@ -204,10 +204,19 @@ async function load() {
     }).catch(()=>{}),
     analyticsApi.employeeRanking().then(t=>teamRank.value = t||[]).catch(()=>{}),
     analyticsApi.recentActivities().then(a=>activities.value = a||[]).catch(()=>{}),
+    analyticsApi.salesTrend(12).then(rows=>{
+      trendData.value = (rows||[]).map(r => ({ month: r.month?.substring(5) || '', amount: r.amount || 0 }))
+    }).catch(()=>{}),
+    analyticsApi.funnel().then(stages=>{
+      funnelData.value = (stages||[]).map(s => ({ name: s.stage, value: s.count }))
+    }).catch(()=>{}),
   ]
   await Promise.allSettled(tasks)
   drawTrend(); drawFunnel(); drawDonut()
 }
+
+const trendData = ref([])
+const funnelData = ref([])
 
 function formatTime(t) {
   if (!t) return ''
@@ -224,13 +233,21 @@ function drawTrend() {
   if (!trendRef.value) return
   if (trendChart) trendChart.dispose()
   trendChart = echarts.init(trendRef.value)
-  const months = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月']
+  // 优先用真实数据，没有则用fallback
+  let months, data
+  if (trendData.value && trendData.value.length) {
+    months = trendData.value.map(d => d.month + '月')
+    data = trendData.value.map(d => d.amount)
+  } else {
+    months = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月']
+    data = [18,22,25,28,31,26,35,38,32,40,37,42].map(v => v*1000)
+  }
   trendChart.setOption({
     tooltip:{trigger:'axis',backgroundColor:'#fff',borderColor:'#e2e8f0',textStyle:{color:'#0f172a'}},
     grid:{left:8,right:24,top:24,bottom:8,containLabel:true},
     xAxis:{type:'category',data:months,axisLabel:{fontSize:11,color:'#94a3b8'},axisLine:{lineStyle:{color:'#e2e8f0'}},axisTick:{show:false}},
     yAxis:{type:'value',axisLabel:{fontSize:11,color:'#94a3b8',formatter:v=>(v/10000)+'万'},splitLine:{lineStyle:{color:'#f1f5f9'}}},
-    series:[{type:'line',data:[18,22,25,28,31,26,35,38,32,40,37,42].map(v=>v*1000),smooth:true,symbol:'circle',symbolSize:6,lineStyle:{color:'#3b82f6',width:2.5},itemStyle:{color:'#3b82f6'},
+    series:[{type:'line',data,smooth:true,symbol:'circle',symbolSize:6,lineStyle:{color:'#3b82f6',width:2.5},itemStyle:{color:'#3b82f6'},
       areaStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'rgba(59,130,246,0.18)'},{offset:1,color:'rgba(59,130,246,0)'}])}}]
   })
 }
@@ -239,18 +256,26 @@ function drawFunnel() {
   if (!funnelRef.value) return
   if (funnelChart) funnelChart.dispose()
   funnelChart = echarts.init(funnelRef.value)
+  let data
+  if (funnelData.value && funnelData.value.length) {
+    // 把真实数据按 stage_order 排序
+    const colors = ['#3b82f6','#6366f1','#8b5cf6','#a855f7','#c084fc','#e879f9']
+    data = funnelData.value.map((s,i) => ({ name: s.name, value: s.value, itemStyle: { color: colors[i%colors.length] } }))
+  } else {
+    data = [
+      {value:100,name:'线索',itemStyle:{color:'#3b82f6'}},
+      {value:72, name:'意向',itemStyle:{color:'#6366f1'}},
+      {value:48, name:'报价',itemStyle:{color:'#8b5cf6'}},
+      {value:24, name:'谈判',itemStyle:{color:'#a855f7'}},
+      {value:12, name:'成交',itemStyle:{color:'#c084fc'}},
+    ]
+  }
   funnelChart.setOption({
     tooltip:{trigger:'item',formatter:'{b}: {c} 单'},
     series:[{type:'funnel',left:'10%',right:'10%',top:10,bottom:10,sort:'descending',gap:4,
       label:{show:true,position:'inside',color:'#fff',fontSize:12,fontWeight:600},
       itemStyle:{borderColor:'#fff',borderWidth:2},
-      data:[
-        {value:100,name:'线索',itemStyle:{color:'#3b82f6'}},
-        {value:72, name:'意向',itemStyle:{color:'#6366f1'}},
-        {value:48, name:'报价',itemStyle:{color:'#8b5cf6'}},
-        {value:24, name:'谈判',itemStyle:{color:'#a855f7'}},
-        {value:12, name:'成交',itemStyle:{color:'#c084fc'}},
-      ]}]
+      data}]
   })
 }
 
