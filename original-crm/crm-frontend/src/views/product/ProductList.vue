@@ -264,7 +264,7 @@ const strategyVisible = ref(false)
 const strategyProduct = ref(null)
 const strategies = ref([])
 
-const uploadUrl = 'https://upset-ideas-grab.loca.lt/api/upload'
+const uploadUrl = 'http://localhost:8081/api/upload'
 const uploadHeaders = computed(() => ({
   Authorization: 'Bearer ' + (localStorage.getItem('token') || '')
 }))

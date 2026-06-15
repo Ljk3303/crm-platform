@@ -29,13 +29,13 @@
   --relax-gradient-2: linear-gradient(135deg, #DDD6FE, #A7F3D0);
   --relax-gradient-3: linear-gradient(135deg, #FED7AA, #FBCFE8);
 
-  /* === 侧边栏 === */
-  --crm-sidebar-bg: #1E293B;
-  --crm-sidebar-hover: rgba(255, 255, 255, 0.06);
-  --crm-sidebar-active: rgba(37, 99, 235, 0.25);
-  --crm-sidebar-text: rgba(255, 255, 255, 0.65);
-  --crm-sidebar-text-active: #FFFFFF;
-  --crm-sidebar-width: 220px;
+  /* === 侧边栏 (shadcn light) === */
+  --crm-sidebar-bg: #FFFFFF;
+  --crm-sidebar-hover: #F1F5F9;
+  --crm-sidebar-active: #EFF6FF;
+  --crm-sidebar-text: #475569;
+  --crm-sidebar-text-active: #2563EB;
+  --crm-sidebar-width: 230px;
   --crm-sidebar-collapsed: 64px;
 
   /* === 顶部栏 === */

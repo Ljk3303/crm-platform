@@ -153,16 +153,42 @@ onUnmounted(() => { salesChart?.dispose(); funnelChart?.dispose() })
 </script>
 
 <style scoped>
-.dashboard-v2{display:flex;flex-direction:column;gap:14px;padding:2px 0}
+.dashboard-v2{display:flex;flex-direction:column;gap:18px;padding:2px 0;color:#0f172a}
+.page-hd h2{font-size:22px;font-weight:700;margin:0 0 2px 0;letter-spacing:-.01em}
+.page-hd .text-muted{display:block;font-size:13px;color:#64748b;margin-bottom:12px}
 
-/* Minimal shadcn-style list */
+/* === Stats Grid (atomic-crm style) === */
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.stat-card-item{background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:18px 20px;transition:border-color .2s,box-shadow .2s}
+.stat-card-item:hover{border-color:#cbd5e1;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.stat-card-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px}
+.stat-card-label{font-size:13px;color:#64748b;font-weight:500}
+.stat-card-icon{width:32px;height:32px;border-radius:6px;display:flex;align-items:center;justify-content:center}
+.stat-card-icon.blue{background:#dbeafe;color:#2563eb}
+.stat-card-icon.green{background:#dcfce7;color:#16a34a}
+.stat-card-icon.purple{background:#f3e8ff;color:#9333ea}
+.stat-card-icon.red{background:#fee2e2;color:#dc2626}
+.stat-card-icon.amber{background:#fef3c7;color:#d97706}
+.stat-card-value{font-size:24px;font-weight:700;color:#0f172a;letter-spacing:-.01em;margin-bottom:4px;font-family:var(--crm-font-mono)}
+.stat-card-sub{font-size:12px;color:#64748b}
+
+/* === Content Card === */
+.content-card{background:#fff;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden}
+.content-card-header{padding:14px 18px;border-bottom:1px solid #f1f5f9;font-size:14px;font-weight:600;color:#0f172a;display:flex;align-items:center;justify-content:space-between}
+.content-card-header .text-muted{font-weight:400}
+.content-card-body{padding:16px 18px}
+.text-muted{color:#94a3b8}
+.text-sm{font-size:12px;font-weight:400}
+.chart-area{width:100%;height:300px}
+
+/* === Minimal shadcn-style list === */
 .shad-list{display:flex;flex-direction:column;gap:2px}
-.shad-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9}
+.shad-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:13px}
 .shad-item:last-child{border-bottom:none}
-.shad-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.shad-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
 .shad-dot.red{background:#ef4444}.shad-dot.amber{background:#f59e0b}.shad-dot.blue{background:#3b82f6}
-.shad-name{font-weight:600;font-size:13px;color:#1e293b}
+.shad-name{font-weight:600;color:#0f172a}
 
-@media(max-width:900px){[style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important}
-  [style*="grid-template-columns:1fr 1fr 1fr"]{grid-template-columns:1fr!important}}
+@media(max-width:1100px){.stat-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:700px){.stat-grid{grid-template-columns:1fr}}
 </style>
