@@ -1,0 +1,2 @@
+<template><div><h2>📋 操作日志</h2><el-table :data="list" stripe size="small" max-height="500"><el-table-column prop="user_name" label="用户" width="100"/><el-table-column prop="action" label="操作" width="150"/><el-table-column prop="detail" label="详情" min-width="200"/><el-table-column prop="created_at" label="时间" width="160"/></el-table></div></template>
+<script setup>import {ref,onMounted} from 'vue';import request from '@/utils/request';const list=ref([]);onMounted(async()=>{try{list.value=await request.get('/audit-logs')||[]}catch{}})</script>
