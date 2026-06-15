@@ -205,11 +205,15 @@ async function load() {
     analyticsApi.employeeRanking().then(t=>teamRank.value = t||[]).catch(()=>{}),
     analyticsApi.recentActivities().then(a=>activities.value = a||[]).catch(()=>{}),
     analyticsApi.salesTrend(12).then(rows=>{
-      trendData.value = (rows||[]).map(r => ({ month: r.month?.substring(5) || '', amount: r.amount || 0 }))
-    }).catch(()=>{}),
+      const arr = rows || []
+      console.log('[dashboard] sales-trend rows:', arr.length, 'sample:', arr[0])
+      trendData.value = arr
+    }).catch(e=>console.error('[sales-trend]', e)),
     analyticsApi.funnel().then(stages=>{
-      funnelData.value = (stages||[]).map(s => ({ name: s.stage, value: s.count }))
-    }).catch(()=>{}),
+      const arr = stages || []
+      console.log('[dashboard] funnel stages:', arr.length, 'sample:', arr[0])
+      funnelData.value = arr
+    }).catch(e=>console.error('[funnel]', e)),
   ]
   await Promise.allSettled(tasks)
   drawTrend(); drawFunnel(); drawDonut()
@@ -236,8 +240,14 @@ function drawTrend() {
   // 优先用真实数据，没有则用fallback
   let months, data
   if (trendData.value && trendData.value.length) {
-    months = trendData.value.map(d => d.month + '月')
-    data = trendData.value.map(d => d.amount)
+    months = trendData.value.map(d => (d.month || '').replace(/-\d+$/, '').replace(/^(\d{4})-/, '$1-'))
+    // 简化显示为 月份
+    months = trendData.value.map(d => {
+      const m = d.month || ''
+      const parts = m.split('-')
+      return parts.length === 2 ? `${parseInt(parts[1])}月` : m
+    })
+    data = trendData.value.map(d => d.amount || 0)
   } else {
     months = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月']
     data = [18,22,25,28,31,26,35,38,32,40,37,42].map(v => v*1000)
@@ -258,9 +268,13 @@ function drawFunnel() {
   funnelChart = echarts.init(funnelRef.value)
   let data
   if (funnelData.value && funnelData.value.length) {
-    // 把真实数据按 stage_order 排序
     const colors = ['#3b82f6','#6366f1','#8b5cf6','#a855f7','#c084fc','#e879f9']
-    data = funnelData.value.map((s,i) => ({ name: s.name, value: s.value, itemStyle: { color: colors[i%colors.length] } }))
+    // funnel API returns: {stage, count, amount}
+    data = funnelData.value.map((s,i) => ({
+      name: s.stage,
+      value: s.count,
+      itemStyle: { color: colors[i%colors.length] }
+    }))
   } else {
     data = [
       {value:100,name:'线索',itemStyle:{color:'#3b82f6'}},
