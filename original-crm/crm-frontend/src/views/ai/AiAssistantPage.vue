@@ -359,12 +359,20 @@ function formatContent(s) {
 
 async function loadInsights() {
   try {
-    const orders = await request.get('/dashboard/stats')
-    insight.highValue = orders?.totalOpportunities || orders?.active_opportunities || 0
+    const stats = await request.get('/dashboard/stats')
+    insight.highValue = stats?.totalOpportunities || stats?.active_opportunities || 0
+    insight.highRisk = 3
   } catch {}
   try {
-    const custs = await request.get('/customers', { params: { level: '高价值', size: 1 } })
-    insight.highRisk = 3
+    const source = await request.get('/analytics/customer-source')
+    insight.totalCustomers = source?.reduce((s,r)=>s+r.value, 0) || 0
+  } catch {}
+  try {
+    const rank = await request.get('/analytics/employee-ranking')
+    if (rank && rank.length > 0) {
+      insight.topAmount = rank[0].amount
+      insight.topEmployee = rank[0].name
+    }
   } catch {}
 }
 

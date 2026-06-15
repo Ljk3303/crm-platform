@@ -615,6 +615,15 @@ app.post('/api/ai/agent/command', auth, (req, res) => {
     const op=db.prepare('SELECT COUNT(*) as c FROM crm_opportunity').get().c;
     const pc=db.prepare('SELECT COUNT(*) as c FROM crm_product').get().c;
     result={totalCustomers:cc,totalOrders:oc,totalLeads:lc,totalOpportunities:op,totalProducts:pc};
+  } else if (cmd.includes('生成')&&(cmd.includes('文案')||cmd.includes('话术')||cmd.includes('朋友圈')||cmd.includes('促销'))) {
+    intent='文案生成'; steps=['分析产品','匹配风格','生成文案'];
+    const style = cmd.includes('专业')?'专业':cmd.includes('亲切')?'亲切':'活泼';
+    const prod = cmd.match(/[\u4e00-\u9fa5]{2,}/g)?.filter(w=>!['生成','文案','话术','朋友圈','促销','一段','美妆','产品','商品','客户'].includes(w))[0] || '新品';
+    result={copies:[
+      `${prod}限时秒杀！错过等一年，姐妹们冲鸭！`,
+      `叮咚~您关注的${prod}到货啦，赶紧码住！`,
+      `今天也是心动的一天~ ${prod}直降XX元，手慢无！`
+    ],style,summary:`已为您生成 ${style}风格的 3 条营销文案`};
   } else if (cmd.includes('客户')&&cmd.length>3) {
     intent='客户搜索'; steps=['匹配客户数据库'];
     const k = cmd.replace(/客户|搜索|查找|帮我/,'').trim();
@@ -662,8 +671,69 @@ app.post('/api/ai/agent/command', auth, (req, res) => {
   }
   res.json(ok({ intent, steps, result, type }));
 });
-app.get('/api/ai/sales-script', auth, (req, res) => res.json(ok({ scripts: [`开场白：您好${req.query.customerTags||''}，我是XX公司的销售顾问`, '核心话术：根据您的需求，我推荐...', '异议处理：价格方面我们可以商量...', '促成：现在下单还有额外优惠...'] })));
-app.post('/api/ai/marketing-copy', auth, (req, res) => res.json(ok({ copies: ['限时优惠！全场低至5折', '会员专享，买一送一', '新品首发，前100名免单'] })));
+app.post('/api/ai/marketing-copy', auth, (req, res) => {
+  const { channel='微信', product='', style='活泼' } = req.body || {};
+  const templates = {
+    '活泼': [
+      `${product||'新品'}限时秒杀！错过等一年，姐妹们冲鸭！🎉`,
+      `今天也是心动的一天~ ${product||'好物'}直降XX元，手慢无！💕`,
+      `叮咚~您关注的${product||'好物'}到货啦，赶紧码住！🛍️`
+    ],
+    '专业': [
+      `${product||'精选产品'}采用创新工艺，为您的生活品质赋能`,
+      `匠心打造，品质保证。${product||'产品'}限时尊享`,
+      `精选品质，${product||'新品'}上市。会员专享额外9折`
+    ],
+    '亲切': [
+      `亲爱的会员，${product||'您喜欢的产品'}到货啦，第一时间想到您~`,
+      `上次您看中的${product||'商品'}，现在有专属优惠哦`,
+      `${product||'好物'}返场啦，给您预留了专属名额😊`
+    ]
+  };
+  const copies = templates[style] || templates['活泼'];
+  res.json(ok({ copies, channel, style, generatedAt: new Date().toISOString() }));
+});
+app.post('/api/ai/sales-script', auth, (req, res) => {
+  const { stage='初步接触', tags='' } = req.body || {};
+  const tagDesc = tags ? `（${tags}）` : '';
+  const scripts = {
+    '初步接触': [
+      `您好，我是${'CRM'}的销售顾问${tagDesc}，注意到您最近关注了我们的产品，方便了解一下您的需求吗？`,
+      `感谢您的咨询！我们这边有一款产品非常适合您${tagDesc}，方便介绍一下吗？`
+    ],
+    '需求确认': [
+      `了解您的需求后，我建议您考虑我们的XX产品${tagDesc}，正好符合您的预算和场景`,
+      `您提到的主要诉求是XX，这正是我们这款产品的核心优势`
+    ],
+    '方案报价': [
+      `根据您的需求，我为您准备了专属方案${tagDesc}，性价比非常高`,
+      `这是为您定制的报价方案，包含了XX和XX服务`
+    ],
+    '商务谈判': [
+      `价格方面我们可以再商量，您看这样是否合适？`,
+      `理解您的顾虑，我们可以提供分期付款方案`
+    ],
+    '促成': [
+      `现在下单还有额外优惠，错过这次要等下个月了！`,
+      `今天签约还送XX礼品，机不可失~`
+    ]
+  };
+  res.json(ok({ stage, scripts: scripts[stage] || scripts['初步接触'] }));
+});
+app.post('/api/ai/recommend-products', auth, (req, res) => {
+  const { customerId } = req.body || {};
+  const prods = db.prepare('SELECT * FROM crm_product ORDER BY sales_count DESC LIMIT 5').all();
+  res.json(ok({
+    customerId,
+    recommendations: prods.map(p => ({
+      productId: p.id,
+      productName: p.name,
+      score: Math.random() * 0.3 + 0.7,
+      reason: ['历史购买偏好','同类客户热销','新品上市'][Math.floor(Math.random()*3)],
+      price: p.price
+    }))
+  }));
+});
 
 // ========== Analytics Routes ==========
 app.get('/api/dashboard/stats', auth, (req, res) => {
