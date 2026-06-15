@@ -1,8 +1,9 @@
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
 
+// Use relative path so Vite proxy forwards to backend (avoids CORS and port issues)
 const request = axios.create({
-  baseURL: 'http://localhost:8081/api',
+  baseURL: '/api',
   timeout: 10000
 })
 
