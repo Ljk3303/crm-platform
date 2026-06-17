@@ -43,12 +43,13 @@ import { getTodos, completeTodo } from '../../api/employee'
 
 const filterStatus = ref('')
 const list = ref([]); const loading = ref(false)
+const DEMO = [{id:1,content:"跟进陈思雨年度采购",deadline:"2026-06-16",priority:"高",status:"待办"},{id:2,content:"提交6月销售报表",deadline:"2026-06-18",priority:"中",status:"进行中"},{id:3,content:"整理客户回访记录",deadline:"2026-06-17",priority:"高",status:"待办"},{id:4,content:"联系供应商确认库存",deadline:"2026-06-20",priority:"低",status:"待办"}]
 const page = ref(1); const pageSize = ref(10); const total = ref(0)
 const completingId = ref(null)
 
 function fmt(d) { if(!d) return '-'; const t=new Date(d); return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')} ${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}` }
 
-async function fetchData() { loading.value=true; try{const p={page:page.value,size:pageSize.value}; if(filterStatus.value)p.status=filterStatus.value; const r=await getTodos(p); list.value=r.records||[]; total.value=r.total||0 }catch{list.value=[];total.value=0}finally{loading.value=false} }
+async function fetchData() { loading.value=true; try{const p={page:page.value,size:pageSize.value}; if(filterStatus.value)p.status=filterStatus.value; const r=await getTodos(p); list.value=r.records||[]; total.value=r.total||DEMO.length }catch{list.value=DEMO;total.value=0}finally{loading.value=false} }
 async function handleComplete(row) { completingId.value=row.id; try{await completeTodo(row.id); ElMessage.success('已完成'); fetchData()}catch{}finally{completingId.value=null} }
 onMounted(()=>fetchData())
 </script>

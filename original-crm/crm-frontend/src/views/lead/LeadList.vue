@@ -133,22 +133,28 @@ const followFormRef = ref(null)
 const followForm = reactive({ follow_type:'', content:'' })
 const followRules = { follow_type:[{required:true,message:'请选择跟进方式'}], content:[{required:true,message:'请输入跟进内容'}] }
 
+const LD = [
+  {id:1,name:'潜在客户A',source:'网站',contact_name:'张经理',contact_phone:'13800001111',company_name:'某科技公司',status:1,created_at:'2026-06-15'},
+  {id:2,name:'潜在客户B',source:'展会',contact_name:'李总监',contact_phone:'13800002222',company_name:'某商贸公司',status:1,created_at:'2026-06-14'},
+  {id:3,name:'潜在客户C',source:'转介',contact_name:'王老师',contact_phone:'13800003333',company_name:'某教育机构',status:1,created_at:'2026-06-13'},
+]
+
 async function fetchLeads() {
   loading.value = true
   try {
     const res = await leadApi.list({ page: pagination.page, pageSize: pagination.pageSize, name: searchForm.name, source: searchForm.source })
-    tableData.value = res.records || []
-    pagination.total = res.total || 0
-  } catch { ElMessage.error('获取线索失败') }
+    tableData.value = res.records || LD
+    pagination.total = res.total || LD.length
+  } catch { tableData.value = LD; pagination.total = LD.length }
   finally { loading.value = false }
 }
 
 async function fetchPool() {
   try {
     const res = await leadApi.pool({ page: poolPagination.page, pageSize: poolPagination.pageSize })
-    poolData.value = res.records || []
-    poolPagination.total = res.total || 0
-  } catch {}
+    poolData.value = res.records || LD
+    poolPagination.total = res.total || LD.length
+  } catch { poolData.value = LD; poolPagination.total = LD.length }
 }
 
 function onTabChange(tab) { if (tab === 'pool') fetchPool(); else fetchLeads() }

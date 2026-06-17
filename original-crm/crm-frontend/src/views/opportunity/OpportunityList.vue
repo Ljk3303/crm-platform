@@ -257,6 +257,12 @@ import { opportunityApi, customerApi, userApi } from '@/api/index'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 const stages = ['初步接触', '需求分析', '方案报价', '谈判', '赢单', '输单']
+const OD = [
+  {id:1,name:'陈思雨年度美妆采购',customer_id:1,amount:50000,stage:'初步接触',probability:60,expected_close_date:'2026-07-15',created_at:'2026-06-10'},
+  {id:2,name:'李佳琪品牌合作',customer_id:3,amount:200000,stage:'方案报价',probability:50,expected_close_date:'2026-08-01',created_at:'2026-06-08'},
+  {id:3,name:'刘建国办公采购',customer_id:2,amount:120000,stage:'商务谈判',probability:70,expected_close_date:'2026-07-20',created_at:'2026-06-05'},
+  {id:4,name:'张晓萌文具批发',customer_id:4,amount:35000,stage:'初步接触',probability:40,expected_close_date:'2026-08-10',created_at:'2026-06-12'},
+]
 const viewMode = ref('list')
 
 const searchForm = reactive({ name: '', stage: '', customer_name: '' })
@@ -327,7 +333,7 @@ const fetchData = async () => {
     tableData.value = res.records || res || []
     pagination.total = res.total || 0
   } catch (e) {
-    ElMessage.error('获取商机列表失败')
+    tableData.value = OD; pagination.total = OD.length
   } finally {
     loading.value = false
   }

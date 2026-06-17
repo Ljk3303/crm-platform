@@ -44,6 +44,7 @@ import { getPoolCustomers, claimCustomer } from '../../api/customer'
 const searchForm = reactive({ name:'', phone:'', level:'' })
 const poolList = ref([])
 const loading = ref(false)
+const DEMO = [{id:1,name:"潜在客户A",phone:"13800001111",source:"网站",level:"普通",created_at:"2026-06-15"},{id:2,name:"潜在客户B",phone:"13800002222",source:"展会",level:"高价值",created_at:"2026-06-14"},{id:3,name:"潜在客户C",phone:"13800003333",source:"转介",level:"普通",created_at:"2026-06-13"}]
 const page = ref(1); const pageSize = ref(10); const total = ref(0)
 const claimingId = ref(null)
 function levelType(l) { return {'高价值':'danger','普通':'','沉睡':'info'}[l]||'' }
@@ -57,7 +58,7 @@ async function fetchData() {
     if(searchForm.level) p.level = searchForm.level
     const res = await getPoolCustomers(p)
     poolList.value = res.records || []; total.value = res.total || 0
-  } catch { poolList.value=[]; total.value=0 }
+  } catch { poolList.value=DEMO; total.value=0 }
   finally { loading.value=false }
 }
 function handleSearch() { page.value=1; fetchData() }

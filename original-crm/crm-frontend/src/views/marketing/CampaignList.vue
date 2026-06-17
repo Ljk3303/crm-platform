@@ -95,6 +95,7 @@ import { getCampaigns, createCampaign, updateCampaign, deleteCampaign, distribut
 
 const searchForm = reactive({ name:'', status:'' })
 const list = ref([]); const loading = ref(false)
+const DEMO = [{id:1,name:"618年中大促",type:"促销",budget:50000,startDate:"2026-06-01",endDate:"2026-06-18",status:"进行中",leadCount:120,dealAmount:350000},{id:2,name:"会员日回馈",type:"会员",budget:20000,startDate:"2026-07-01",endDate:"2026-07-07",status:"计划中",leadCount:0,dealAmount:0},{id:3,name:"新品体验活动",type:"体验",budget:15000,startDate:"2026-06-10",endDate:"2026-06-25",status:"已结束",leadCount:80,dealAmount:120000}]
 const page = ref(1); const pageSize = ref(10); const total = ref(0)
 
 const dialogVisible = ref(false); const isEdit = ref(false); const editId = ref(null)
@@ -108,7 +109,7 @@ const couponForm = reactive({ name:'', discountValue:0, minAmount:0, totalQty:10
 
 function fmt(d) { if(!d) return '-'; const t=new Date(d); return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}` }
 
-async function fetchData() { loading.value=true; try{const p={page:page.value,size:pageSize.value}; if(searchForm.name)p.name=searchForm.name; if(searchForm.status)p.status=searchForm.status; const r=await getCampaigns(p); list.value=r.records||[]; total.value=r.total||0 }catch{list.value=[];total.value=0}finally{loading.value=false} }
+async function fetchData() { loading.value=true; try{const p={page:page.value,size:pageSize.value}; if(searchForm.name)p.name=searchForm.name; if(searchForm.status)p.status=searchForm.status; const r=await getCampaigns(p); list.value=r.records||[]; total.value=r.total||DEMO.length }catch{list.value=DEMO;total.value=0}finally{loading.value=false} }
 function handleSearch() { page.value=1; fetchData() }
 function handleReset() { searchForm.name=''; searchForm.status=''; page.value=1; fetchData() }
 

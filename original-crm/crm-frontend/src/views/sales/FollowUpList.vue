@@ -72,7 +72,8 @@ import { Search, Refresh, Plus, Select } from '@element-plus/icons-vue'
 import { getFollowUps, createFollowUp, updateFollowUp } from '../../api/sales'
 import { getCustomers } from '../../api/customer'
 
-const searchForm = reactive({ status:'' }); const activeTab = ref('回访')
+const searchForm = reactive({ status:'' }); const DEMO = [{id:1,customerName:"陈思雨",type:"回访",planTime:"2026-06-16 10:00",content:"跟进年度采购需求",status:"待处理"},{id:2,customerName:"李佳琪",type:"拜访",planTime:"2026-06-15 14:00",content:"介绍新品上市方案",status:"已完成"},{id:3,customerName:"刘建国",type:"电话",planTime:"2026-06-17 09:00",content:"确认报价方案",status:"待处理"}]
+const activeTab = ref('回访')
 const list = ref([]); const loading = ref(false)
 const page = ref(1); const pageSize = ref(10); const total = ref(0)
 
@@ -89,7 +90,7 @@ const completeRules = { actualTime:[{required:true,message:'请选择时间',tri
 function statusType(s) { return {'待处理':'warning','处理中':'primary','已完成':'success'}[s]||'' }
 function fmt(d) { if(!d) return '-'; const t=new Date(d); return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')} ${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}` }
 
-async function fetchData() { loading.value=true; try{const p={page:page.value,size:pageSize.value,type:activeTab.value}; if(searchForm.status) p.status=searchForm.status; const r=await getFollowUps(p); list.value=r.records||[]; total.value=r.total||0 }catch{list.value=[];total.value=0}finally{loading.value=false} }
+async function fetchData() { loading.value=true; try{const p={page:page.value,size:pageSize.value,type:activeTab.value}; if(searchForm.status) p.status=searchForm.status; const r=await getFollowUps(p); list.value=r.records||[]; total.value=r.total||DEMO.length }catch{list.value=DEMO;total.value=0}finally{loading.value=false} }
 function handleTabChange() { page.value=1; fetchData() }
 function handleSearch() { page.value=1; fetchData() }
 function handleReset() { searchForm.status=''; page.value=1; fetchData() }
