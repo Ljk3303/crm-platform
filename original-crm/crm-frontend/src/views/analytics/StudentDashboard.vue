@@ -84,20 +84,61 @@ const clusterList = ref([])
 const campusDialog = ref(false)
 const campusForm = reactive({name:'',campus:'',type:'校园推广',startDate:'',endDate:'',budget:0})
 
+// Demo data
+const SD = { totalStudents:2850, verifiedStudents:1280, tierDistLen:4, totalTags:35 }
+stats[0].value = SD.totalStudents; stats[1].value = SD.verifiedStudents; stats[2].value = SD.tierDistLen; stats[3].value = SD.totalTags
+
+const SR = [
+  { customer_id:1, customer_name:'陈思雨', r_score:5, f_score:4, m_score:5, tier:'核心价值客户' },
+  { customer_id:3, customer_name:'李佳琪', r_score:4, f_score:3, m_score:4, tier:'潜力客户' },
+  { customer_id:2, customer_name:'刘建国', r_score:3, f_score:2, m_score:4, tier:'潜力客户' },
+  { customer_id:5, customer_name:'王大明', r_score:4, f_score:5, m_score:4, tier:'核心价值客户' },
+  { customer_id:4, customer_name:'张晓萌', r_score:2, f_score:1, m_score:2, tier:'流失风险客户' },
+  { customer_id:14, customer_name:'测试用户2', r_score:3, f_score:3, m_score:3, tier:'潜力客户' },
+]
+rfmList.value = SR
+
+const SL = [
+  { id:1, name:'陈思雨', grade:'大二', major_category:'文科', living_expense_range:'1500-2000', campus:'北京大学', dormitory:'燕园35楼' },
+  { id:2, name:'张晓萌', grade:'大一', major_category:'工科', living_expense_range:'1000-1500', campus:'清华大学', dormitory:'紫荆公寓' },
+  { id:3, name:'测试用户2', grade:'大三', major_category:'理科', living_expense_range:'2000+', campus:'复旦大学', dormitory:'南区28号' },
+  { id:4, name:'林小慧', grade:'大二', major_category:'文科', living_expense_range:'1500-2000', campus:'中山大学', dormitory:'至善园' },
+  { id:5, name:'黄子轩', grade:'大一', major_category:'工科', living_expense_range:'1000-1500', campus:'武汉大学', dormitory:'桂园' },
+]
+studentList.value = SL
+
+const CL = [
+  { id:1, name:'北京海淀区高校群', description:'覆盖北大、清华等8所高校', student_count:2850, avg_spending:168.5, top_category:'美妆' },
+  { id:2, name:'上海闵行高校群', description:'覆盖交大、复旦等6所高校', student_count:1980, avg_spending:142.3, top_category:'服饰' },
+  { id:3, name:'广州大学城集群', description:'覆盖中大、华师等10所高校', student_count:3200, avg_spending:156.8, top_category:'美妆' },
+]
+clusterList.value = CL
+
+const TL = [
+  { id:1, name:'开学季促销模板', type:'促销', conditions:'新生', student_only:1 },
+  { id:2, name:'会员日回馈模板', type:'会员', conditions:'全员', student_only:0 },
+  { id:3, name:'社团合作方案', type:'合作', conditions:'社团成员', student_only:1 },
+]
+templateList.value = TL
+
+const WL = [
+  { id:1, name:'新学生自动标签', trigger_type:'客户创建', status:1 },
+  { id:2, name:'沉睡客户激活', trigger_type:'定时任务', status:1 },
+  { id:3, name:'学生认证奖励', trigger_type:'认证完成', status:1 },
+]
+workflowList.value = WL
+
 onMounted(async () => {
-  try { const d = await request.get('/analytics/student-dashboard'); stats[0].value = d.totalStudents||0; stats[1].value = d.verifiedStudents||SD2.verifiedStudents; stats[2].value = d.tierDistribution?.length||0; stats[3].value = d.totalTags||0 } catch {}
-  try { rfmList.value = (await request.get('/rfm-scores')) || [] } catch {}
+  try { const d = await request.get('/analytics/student-dashboard'); stats[0].value = d.totalStudents||SD.totalStudents; stats[1].value = d.verifiedStudents||SD.verifiedStudents; stats[2].value = d.tierDistribution?.length||SD.tierDistLen; stats[3].value = d.totalTags||SD.totalTags } catch {}
+  try { const r = await request.get('/rfm-scores'); if (r && r.length) rfmList.value = r } catch {}
   try {
-    const custs = (await request.get('/customers?size=100'))?.records||[];
-    const profiles = await Promise.all(custs.slice(0,10).map(async c=>{
-      try { const p = await request.get('/student-profiles/'+c.id); return { ...c, ...(p||{}) } } catch { return c }
-    }))
-    studentList.value = profiles
+    const custs = (await request.get('/customers?size=10'))?.records||[]
+    if (custs.length) { studentList.value = custs.map(c => ({...c, grade:'未知',major_category:'未知',living_expense_range:'未知',campus:'未知'})) }
   } catch {}
-  try { campusList.value = await request.get('/campus-campaigns') || [] } catch {}
-  try { templateList.value = await request.get('/marketing-templates') || [] } catch {}
-  try { workflowList.value = await request.get('/auto-workflows') || [] } catch {}
-  try { clusterList.value = await request.get('/campus-clusters') || [] } catch {}
+  try { const r = await request.get('/campus-campaigns'); if (r && r.length) campusList.value = r } catch {}
+  try { const r = await request.get('/marketing-templates'); if (r && r.length) templateList.value = r } catch {}
+  try { const r = await request.get('/auto-workflows'); if (r && r.length) workflowList.value = r } catch {}
+  try { const r = await request.get('/campus-clusters'); if (r && r.length) clusterList.value = r } catch {}
 })
 
 function scoreColor(s) { return s>=5?'s5':s>=3?'s3':'s1' }
