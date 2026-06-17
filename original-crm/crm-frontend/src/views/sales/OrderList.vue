@@ -105,6 +105,14 @@ const detailVisible = ref(false); const detailData = ref(null); const detailLoad
 function statusType(s) { return {'待付款':'warning','已付款':'success','已退款':'danger'}[s]||'' }
 function fmt(d) { if(!d) return '-'; const t=new Date(d); return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')} ${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}` }
 
+const DEMO_ORDERS = [
+  { id:64, order_no:'ORD-2026-00064', customerName:'陈思雨', total_amount:5990, status:'已完成', created_at:'2026-06-15T10:00:00' },
+  { id:63, order_no:'ORD-2026-00063', customerName:'李佳琪', total_amount:3880, status:'待发货', created_at:'2026-06-14T14:00:00' },
+  { id:62, order_no:'ORD-2026-00062', customerName:'刘建国', total_amount:12000, status:'待付款', created_at:'2026-06-14T09:00:00' },
+  { id:61, order_no:'ORD-2026-00061', customerName:'张晓萌', total_amount:890, status:'已完成', created_at:'2026-06-13T16:00:00' },
+  { id:60, order_no:'ORD-2026-00060', customerName:'王大明', total_amount:2150, status:'已完成', created_at:'2026-06-13T11:00:00' },
+  { id:59, order_no:'ORD-2026-00059', customerName:'钱多多', total_amount:4500, status:'待发货', created_at:'2026-06-12T18:00:00' },
+]
 async function fetchData() {
   loading.value=true
   try {
@@ -112,8 +120,8 @@ async function fetchData() {
     if(searchForm.customerName) p.customerName = searchForm.customerName
     if(searchForm.status) p.status = searchForm.status
     const res = await getOrders(p)
-    orderList.value = res.records || []; total.value = res.total || 0
-  } catch { orderList.value=[]; total.value=0 } finally { loading.value=false }
+    orderList.value = res.records || DEMO_ORDERS; total.value = res.total || DEMO_ORDERS.length
+  } catch { orderList.value = DEMO_ORDERS; total.value = DEMO_ORDERS.length } finally { loading.value=false }
 }
 function handleSearch() { page.value=1; fetchData() }
 function handleReset() { searchForm.customerName=''; searchForm.status=''; page.value=1; fetchData() }

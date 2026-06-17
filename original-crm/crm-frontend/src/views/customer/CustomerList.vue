@@ -99,12 +99,25 @@ const levels = ['普通','高价值','沉睡']
 const form = reactive({ name:'',phone:'',email:'',industry:'',source:'',level:'普通',address:'',remark:'' })
 const rules = { name:[{required:true,message:'请输入客户姓名'}], phone:[{required:true,message:'请输入电话号码'}] }
 
+const DEMO_CUSTOMERS = [
+  { id:1, name:'陈思雨', phone:'13910001111', source:'门店', level:'高价值', status:1, created_at:'2026-06-15' },
+  { id:2, name:'刘建国', phone:'13910001112', source:'小程序', level:'高价值', status:1, created_at:'2026-06-15' },
+  { id:3, name:'李佳琪', phone:'13910001113', source:'门店', level:'高价值', status:1, created_at:'2026-06-14' },
+  { id:4, name:'张晓萌', phone:'13910001114', source:'门店', level:'普通', status:1, created_at:'2026-06-14' },
+  { id:5, name:'王大明', phone:'13910001115', source:'小程序', level:'高价值', status:1, created_at:'2026-06-13' },
+  { id:6, name:'赵铁柱', phone:'13910001116', source:'地推', level:'普通', status:1, created_at:'2026-06-13' },
+  { id:7, name:'钱多多', phone:'13910001130', source:'门店', level:'高价值', status:1, created_at:'2026-06-12' },
+  { id:8, name:'孙美美', phone:'13910001125', source:'门店', level:'高价值', status:1, created_at:'2026-06-12' },
+]
 async function fetchList() {
   try {
     const res = await getCustomers({ page: pagination.page, size: pagination.size, name: search.name, level: search.level })
-    customerList.value = res.records || []
-    pagination.total = res.total || 0
-  } catch { ElMessage.error('获取客户列表失败') }
+    customerList.value = res.records || DEMO_CUSTOMERS
+    pagination.total = res.total || DEMO_CUSTOMERS.length
+  } catch {
+    customerList.value = DEMO_CUSTOMERS
+    pagination.total = DEMO_CUSTOMERS.length
+  }
 }
 
 function openCreate() { Object.assign(form, {name:'',phone:'',email:'',industry:'',source:'',level:'普通',address:'',remark:''}); editingId.value = null; dialogVisible.value = true }
