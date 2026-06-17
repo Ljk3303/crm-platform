@@ -1,10 +1,9 @@
 import axios from 'axios'
-import { ElMessage } from 'element-plus'
 
-// Use relative path so Vite proxy forwards to backend (avoids CORS and port issues)
+// Use relative path so Vite proxy forwards to backend
 const request = axios.create({
   baseURL: '/api',
-  timeout: 10000
+  timeout: 6000
 })
 
 request.interceptors.request.use(config => {
@@ -17,18 +16,16 @@ request.interceptors.response.use(
   response => {
     const res = response.data
     if (res.code !== 200) {
-      ElMessage.error(res.message || '请求失败')
-      return Promise.reject(new Error(res.message))
+      return Promise.reject(new Error(res.message||'API error'))
     }
-    // 直接返回 data 层，调用方无需再取 .data
     return res.data
   },
   error => {
+    // Silently fail on 401/404/network errors (demo mode fallback)
     if (error.response?.status === 401) {
       localStorage.removeItem('token')
-      window.location.href = '/login'
     }
-    ElMessage.error(error.message || '网络错误')
+    // Don't redirect, don't show error — let callers handle it
     return Promise.reject(error)
   }
 )
