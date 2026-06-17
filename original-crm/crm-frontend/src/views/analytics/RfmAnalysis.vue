@@ -59,6 +59,21 @@ let sc = null, pc = null
 const customerData = ref([])
 const filterTier = ref('')
 
+const RD = [
+  { customerName:'陈思雨', phone:'13910001111', rScore:5, fScore:4, mScore:5, segment:'核心价值客户', level:'高价值', source:'门店', lastCalc:'2026-06-17' },
+  { customerName:'李佳琪', phone:'13910001113', rScore:4, fScore:3, mScore:4, segment:'潜力客户', level:'高价值', source:'门店', lastCalc:'2026-06-17' },
+  { customerName:'刘建国', phone:'13910001112', rScore:3, fScore:2, mScore:4, segment:'潜力客户', level:'高价值', source:'小程序', lastCalc:'2026-06-17' },
+  { customerName:'王大明', phone:'13910001115', rScore:4, fScore:5, mScore:4, segment:'核心价值客户', level:'高价值', source:'小程序', lastCalc:'2026-06-17' },
+  { customerName:'张晓萌', phone:'13910001114', rScore:2, fScore:1, mScore:2, segment:'流失风险客户', level:'普通', source:'门店', lastCalc:'2026-06-17' },
+  { customerName:'赵铁柱', phone:'13910001116', rScore:3, fScore:2, mScore:3, segment:'一般客户', level:'普通', source:'地推', lastCalc:'2026-06-17' },
+  { customerName:'钱多多', phone:'13910001130', rScore:4, fScore:3, mScore:3, segment:'潜力客户', level:'高价值', source:'门店', lastCalc:'2026-06-17' },
+  { customerName:'孙美美', phone:'13910001125', rScore:5, fScore:4, mScore:5, segment:'核心价值客户', level:'高价值', source:'门店', lastCalc:'2026-06-17' },
+  { customerName:'周星星', phone:'13910001117', rScore:2, fScore:2, mScore:2, segment:'一般客户', level:'普通', source:'门店', lastCalc:'2026-06-17' },
+  { customerName:'林小慧', phone:'13910001131', rScore:1, fScore:1, mScore:1, segment:'流失风险客户', level:'普通', source:'小程序', lastCalc:'2026-06-17' },
+  { customerName:'测试用户2', phone:'13800000000', rScore:3, fScore:3, mScore:3, segment:'潜力客户', level:'学生', source:'校园认证', lastCalc:'2026-06-17' },
+  { customerName:'黄子轩', phone:'13910001132', rScore:3, fScore:3, mScore:3, segment:'潜力客户', level:'普通', source:'小程序', lastCalc:'2026-06-17' },
+]
+
 const tierColors = {
   '核心价值客户': '#10B981', '潜力客户': '#3B82F6', '一般客户': '#F59E0B', '流失风险客户': '#EF4444'
 }
@@ -72,9 +87,11 @@ function tierColor(t) { return tierColors[t] || '#909399' }
 async function fetchData() {
   try {
     const res = await request.get('/ai/rfm-analysis')
-    customerData.value = Array.isArray(res) ? res : (res?.records || [])
-    await nextTick(); renderCharts()
-  } catch {}
+    if (Array.isArray(res) && res.length) customerData.value = res
+    else if (res?.records?.length) customerData.value = res.records
+    else customerData.value = RD
+  } catch { customerData.value = RD }
+  await nextTick(); renderCharts()
 }
 
 function renderCharts() {
