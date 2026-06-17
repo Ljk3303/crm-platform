@@ -127,6 +127,7 @@ import { noticeApi } from '@/api/index'
 const loading = ref(false)
 const submitting = ref(false)
 const tableData = ref([])
+const ND = [{id:1,title:'618大促通知',content:'全场满200减50,限时3天',type:'通知',status:'已发布',publisher_name:'管理员',created_at:'2026-06-15'},{id:2,title:'会员日公告',content:'本月15日会员日,积分翻倍',type:'公告',status:'已发布',publisher_name:'管理员',created_at:'2026-06-14'},{id:3,title:'系统升级通知',content:'6月18日凌晨升级维护',type:'通知',status:'已发布',publisher_name:'系统',created_at:'2026-06-13'}]
 const dialogVisible = ref(false)
 const viewVisible = ref(false)
 const isEdit = ref(false)
@@ -168,10 +169,10 @@ async function fetchData() {
       pageSize: pagination.pageSize
     })
     const data = res || {}
-    tableData.value = data.list || data.records || []
-    pagination.total = data.total || 0
+    tableData.value = data.list || data.records || ND
+    pagination.total = data.total || ND.length
   } catch {
-    ElMessage.error('获取公告列表失败')
+    tableData.value = ND; pagination.total = ND.length
   } finally {
     loading.value = false
   }

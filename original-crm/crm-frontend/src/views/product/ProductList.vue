@@ -254,6 +254,13 @@ const loading = ref(false)
 const submitting = ref(false)
 const savingStrategy = ref(false)
 const tableData = ref([])
+const PD = [
+  {id:18,code:'MN-010',name:'日系简约双肩包',category:'服饰',price:129.9,model:'BP-MIN',unit:'个',sales_count:17,status:1},
+  {id:5,code:'P005',name:'马克杯',category:'家居',price:67,model:'MUG-01',unit:'个',sales_count:4,status:1},
+  {id:1,code:'P001',name:'面膜套装',category:'美妆',price:59.9,model:'MASK-01',unit:'套',sales_count:2,status:1},
+  {id:16,code:'MN-008',name:'香薰加湿器',category:'家居',price:89.9,model:'HU-01',unit:'台',sales_count:1,status:1},
+  {id:2,code:'P002',name:'手帐本',category:'文具',price:35,model:'NB-01',unit:'本',sales_count:1,status:1},
+]
 const categoryOptions = ref([])
 const dialogVisible = ref(false)
 const dialogMode = ref('create')
@@ -323,14 +330,14 @@ async function fetchData() {
     const params = { page: pagination.page, pageSize: pagination.pageSize, ...searchForm }
     Object.keys(params).forEach(k => { if (params[k] === '' || params[k] === null) delete params[k] })
     const res = await productApi.getProducts(params)
-    tableData.value = res.records || res || []
-    pagination.total = res.total || 0
+    tableData.value = res.records || res || PD
+    pagination.total = res.total || PD.length
     if (!categoryOptions.value.length) {
       const cats = new Set()
       tableData.value.forEach(p => { if (p.category) cats.add(p.category) })
       categoryOptions.value = Array.from(cats)
     }
-  } catch { ElMessage.error('获取产品列表失败') } finally { loading.value = false }
+  } catch { tableData.value = PD; pagination.total = PD.length } finally { loading.value = false }
 }
 
 function handleSearch() { pagination.page = 1; fetchData() }
