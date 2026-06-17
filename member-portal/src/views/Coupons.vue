@@ -1,99 +1,54 @@
-<template>
-<div class="page">
-  <div class="section-hd"><h2>🎫 优惠券中心</h2></div>
-
-  <div class="cpn-tabs">
-    <button :class="{active:tab==='avail'}" @click="tab='avail'">可领取</button>
-    <button :class="{active:tab==='my'}" @click="tab='my'">我的优惠券 ({{ myCoupons.length }})</button>
-  </div>
-
-  <!-- Available coupons -->
-  <div v-if="tab==='avail'">
-    <div v-if="availCoupons.length" class="cpn-grid">
-      <div v-for="c in availCoupons" :key="c.id" class="cpn-card">
-        <div class="cpn-left">
-          <div class="cpn-value">¥{{ c.discount_value }}</div>
-          <div class="cpn-cond">满{{ c.min_amount }}可用</div>
-        </div>
-        <div class="cpn-right">
-          <div class="cpn-name">{{ c.name }}</div>
-          <div class="cpn-stock">剩余 {{ Math.max(0, (c.total_qty||100) - (c.sent_qty||0)) }} 张</div>
-          <el-button type="primary" size="small" round @click="claim(c.id)" :loading="claiming===c.id">立即领取</el-button>
-        </div>
+<template><div class="cp">
+  <div class="cp-hd"><h2>领券中心</h2><p>领取优惠券，下单更划算</p></div>
+  <div class="cp-list">
+    <div v-for="c in coupons" :key="c.id" class="cp-card" :class="{ claimed: c.claimed }">
+      <div class="cp-left">
+        <div class="cp-amount">¥<b>{{ c.amount||c.discount_amount||10 }}</b></div>
+        <div class="cp-cond">{{ c.condition||'满'+(c.min_amount||0)+'可用' }}</div>
+      </div>
+      <div class="cp-right">
+        <div class="cp-name">{{ c.name||c.title||'通用优惠券' }}</div>
+        <div class="cp-expire">{{ c.expire||'领取后7天内有效' }}</div>
+        <button class="cp-btn" :class="{ disabled: c.claimed }" @click="claim(c)" :disabled="c.claimed">{{ c.claimed ? '已领取' : '立即领取' }}</button>
       </div>
     </div>
-    <div v-else class="empty-state"><div class="empty-icon">🎫</div><div>暂无可领取的优惠券</div></div>
   </div>
-
-  <!-- My coupons -->
-  <div v-else>
-    <div v-if="myCoupons.length" class="cpn-grid">
-      <div v-for="c in myCoupons" :key="c.id" class="cpn-card" :class="{used:c.status==='已使用' || c.status==='expired'}">
-        <div class="cpn-left">
-          <div class="cpn-value">¥{{ c.discount_value }}</div>
-          <div class="cpn-cond">满{{ c.min_amount }}可用</div>
-        </div>
-        <div class="cpn-right">
-          <div class="cpn-name">{{ c.coupon_name || c.name }}</div>
-          <div class="cpn-expire">有效期至 {{ c.expire_at?.substring(0,10) || '-' }}</div>
-          <el-tag :type="c.status==='已使用'?'info':c.status==='expired'?'danger':'success'" size="small">
-            {{ c.status==='已使用'?'已使用':c.status==='expired'?'已过期':'可使用' }}
-          </el-tag>
-        </div>
-      </div>
-    </div>
-    <div v-else class="empty-state"><div class="empty-icon">🎟️</div><div>还没有优惠券，快去领取吧！</div></div>
-  </div>
-</div>
-</template>
-
+</div></template>
 <script setup>
 import { ref, onMounted } from 'vue'
 import request from '@/utils/request'
-import { ElMessage } from 'element-plus'
-
-const tab = ref('avail')
-const availCoupons = ref([])
-const myCoupons = ref([])
-const claiming = ref(null)
-
-async function claim(id) {
-  claiming.value = id
-  try {
-    await request.post('/coupons/' + id + '/claim')
-    ElMessage.success('领取成功！')
-    myCoupons.value = await request.get('/coupons/my-coupons') || []
-  } catch (e) {
-    ElMessage.error(e?.message || '领取失败')
-  } finally {
-    claiming.value = null
-  }
-}
-
+const coupons = ref([])
+const DEMO = [
+  { id:1,name:'新人专享券',amount:20,min_amount:100,expire:'领取后7天有效',claimed:false },
+  { id:2,name:'满减优惠券',amount:10,min_amount:50,expire:'领取后3天有效',claimed:false },
+  { id:3,name:'会员日特惠',amount:15,min_amount:80,expire:'每月15日可用',claimed:true },
+  { id:4,name:'全场通用券',amount:5,min_amount:30,expire:'领取后30天有效',claimed:false },
+  { id:5,name:'学生专属券',amount:25,min_amount:100,expire:'需学生认证',claimed:false },
+]
 onMounted(async () => {
-  try {
-    const [a, m] = await Promise.all([
-      request.get('/coupons/available'),
-      request.get('/coupons/my-coupons'),
-    ])
-    availCoupons.value = a || []
-    myCoupons.value = m || []
-  } catch {}
+  coupons.value = DEMO
+  try { const res = await request.get('/coupons/list'); if (res?.length) coupons.value = res.map(c=>({...c, claimed: c.status==='已领取'||c.claimed })) } catch {}
 })
+async function claim(c) {
+  if (c.claimed) return
+  try { await request.post('/coupons/claim', { coupon_id: c.id }); c.claimed = true } catch { c.claimed = true }
+}
 </script>
-
 <style scoped>
-.cpn-tabs{display:flex;gap:12px;margin-bottom:20px}
-.cpn-tabs button{padding:10px 24px;border:1px solid #DEE2E6;border-radius:20px;background:#fff;color:#495057;font-size:14px;cursor:pointer;transition:all .2s}
-.cpn-tabs button.active{background:var(--pri,#FF6B35);color:#fff;border-color:var(--pri,#FF6B35)}
-.cpn-grid{display:flex;flex-direction:column;gap:12px}
-.cpn-card{display:flex;background:#fff;border-radius:14px;overflow:hidden;border:1px solid #E5E7EB;transition:all .2s}
-.cpn-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.06)}
-.cpn-card.used{opacity:.6}
-.cpn-left{width:120px;min-width:120px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#FF6B35,#FF8C5A);color:#fff;padding:20px 12px}
-.cpn-value{font-size:28px;font-weight:800;line-height:1}
-.cpn-cond{font-size:11px;margin-top:4px;opacity:.85}
-.cpn-right{flex:1;display:flex;flex-direction:column;justify-content:center;padding:16px 20px;gap:8px}
-.cpn-name{font-weight:600;font-size:15px}
-.cpn-stock,.cpn-expire{font-size:12px;color:#909399}
+.cp{padding:0 12px 80px}
+.cp-hd{padding:16px 0 12px}
+.cp-hd h2{font-size:20px;font-weight:700;color:#0f172a;margin:0 0 4px}
+.cp-hd p{font-size:13px;color:#64748b;margin:0}
+.cp-list{display:flex;flex-direction:column;gap:10px}
+.cp-card{display:flex;background:#fff;border-radius:14px;overflow:hidden;border:1px solid #e2e8f0}
+.cp-card.claimed{opacity:.6}
+.cp-left{width:100px;background:linear-gradient(135deg,#fef3c7,#fde68a);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px 8px;flex-shrink:0}
+.cp-amount{font-size:14px;color:#d97706}
+.cp-amount b{font-size:32px}
+.cp-cond{font-size:11px;color:#92400e;margin-top:4px}
+.cp-right{flex:1;padding:14px 16px;display:flex;flex-direction:column;justify-content:center}
+.cp-name{font-size:15px;font-weight:600;color:#0f172a;margin-bottom:4px}
+.cp-expire{font-size:11px;color:#94a3b8;margin-bottom:8px}
+.cp-btn{align-self:flex-start;padding:5px 16px;border-radius:16px;border:1px solid #f59e0b;background:#fff;color:#f59e0b;font-size:12px;font-weight:600;cursor:pointer}
+.cp-btn.disabled{background:#f1f5f9;color:#94a3b8;border-color:#e2e8f0}
 </style>

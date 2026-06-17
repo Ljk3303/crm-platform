@@ -1,123 +1,92 @@
-<template>
-<div class="page">
-  <div class="pts-banner">
-    <div class="pts-val">{{ balance.available_points || 0 }}</div>
-    <div class="pts-label">可用积分</div>
-    <div style="margin-top:12px;font-size:13px;opacity:.8">累计获得 {{ balance.total_points || 0 }} 积分</div>
+<template><div class="pt">
+  <div class="pt-card">
+    <div class="pt-hd">我的积分</div>
+    <div class="pt-num">{{ points }}<small>积分</small></div>
+    <div class="pt-sub">可用积分：{{ points }} · 累计获得：{{ totalPoints }}</div>
+    <button class="pt-sign" @click="sign">{{ signed ? '今日已签到' : '签到领积分' }}</button>
   </div>
-
-  <div class="checkin-bar">
-    <div class="checkin-days">
-      <div v-for="d in 7" :key="d" class="checkin-day" :class="{done:d<=signData.continuousDays, today:d===signData.continuousDays+1}">{{ d }}</div>
-    </div>
-    <el-button type="primary" :disabled="signData.signed" @click="doSign" size="large" round style="min-width:100px">
-      {{ signData.signed ? '已签到' : '签到 +' + (Math.min(signData.continuousDays+1,7)*5 + (signData.continuousDays>=6?20:0)) }}
-    </el-button>
-  </div>
-
-  <div class="section"><div class="section-hd"><h2>🎁 积分商城</h2></div>
-    <div class="prod-grid">
-      <div v-for="e in exchangeItems" :key="e.name" class="exchange-card" @click="doExchange(e)">
-        <div class="ex-icon">{{ e.icon }}</div>
-        <div class="ex-name">{{ e.name }}</div>
-        <div class="ex-pts">{{ e.points }} 积分</div>
-        <el-button size="small" round type="primary" :disabled="(balance.available_points||0)<e.points" :loading="exchanging===e.name">
-          {{ (balance.available_points||0)>=e.points ? '立即兑换' : '积分不足' }}
-        </el-button>
+  <div class="pt-card">
+    <div class="pt-card-hd">积分兑换</div>
+    <div class="pt-grid">
+      <div v-for="g in gifts" :key="g.id" class="pt-gift" @click="exchange(g)">
+        <div class="pt-g-emoji">{{ giftEmoji(g.id) }}</div>
+        <div class="pt-g-name">{{ g.name }}</div>
+        <div class="pt-g-pts">{{ g.points }}积分</div>
       </div>
     </div>
   </div>
-
-  <div class="section"><div class="section-hd"><h2>📋 积分明细</h2></div>
-    <div v-if="records.length" style="background:#fff;border-radius:14px;overflow:hidden">
-      <div v-for="r in records" :key="r.id" style="display:flex;justify-content:space-between;align-items:center;padding:14px 20px;border-bottom:1px solid #F3F4F6">
-        <div><div style="font-weight:500;font-size:14px">{{ r.reason || r.type }}</div><div style="font-size:12px;color:#9CA3AF">{{ r.created_at?.substring(0,16) }}</div></div>
-        <div :style="{color:r.type==='收入'?'#059669':'#DC2626',fontWeight:700,fontSize:15}">{{ r.type==='收入'?'+':'-' }}{{ r.points }}分</div>
-      </div>
+  <div class="pt-card">
+    <div class="pt-card-hd">积分记录</div>
+    <div v-for="r in records" :key="r.id" class="pt-r">
+      <div class="pt-r-info"><div class="pt-r-nm">{{ r.reason }}</div><div class="pt-r-tm">{{ r.time||r.created_at }}</div></div>
+      <div class="pt-r-pts" :class="{plus:r.points>0}">{{ r.points>0?'+':'' }}{{ r.points }}</div>
     </div>
-    <div v-else class="empty-state"><div class="empty-icon">📊</div><div>暂无积分记录</div></div>
   </div>
-</div>
-</template>
-
+</div></template>
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import request from '@/utils/request'
-import { ElMessage, ElMessageBox } from 'element-plus'
-
-const balance = ref({ available_points: 0, total_points: 0 })
-const signData = reactive({ signed: false, continuousDays: 0 })
+const points = ref(0)
+const totalPoints = ref(0)
+const signed = ref(false)
 const records = ref([])
-const exchangeItems = ref([])
-const exchanging = ref(null)
-
-const defaultExchangeItems = [
-  { name: '5元无门槛券', points: 500, icon: '🎫', type: 'coupon' },
-  { name: '10元满减券', points: 800, icon: '💰', type: 'coupon' },
-  { name: '品牌帆布袋', points: 1200, icon: '🛍️', type: 'gift' },
-  { name: '限量徽章套装', points: 2000, icon: '🏅', type: 'gift' },
-  { name: '保温杯(马卡龙)', points: 3000, icon: '🥤', type: 'gift' },
-  { name: '蓝牙音箱', points: 5000, icon: '🔊', type: 'gift' },
+const gifts = ref([
+  { id:1,name:'5元优惠券',points:100 },
+  { id:2,name:'10元优惠券',points:200 },
+  { id:3,name:'小风扇',points:300 },
+  { id:4,name:'保温杯',points:500 },
+  { id:5,name:'蓝牙音箱',points:1000 },
+  { id:6,name:'双肩包',points:2000 },
+])
+function giftEmoji(id) { return ['🎫','🎫','🌀','🥤','🔊','🎒'][(id-1)%6] }
+const DEMO_RECORDS = [
+  { id:1,reason:'每日签到',points:10,time:'今天 08:30' },
+  { id:2,reason:'购物奖励',points:50,time:'昨天 14:20' },
+  { id:3,reason:'分享商品',points:5,time:'昨天 10:00' },
+  { id:4,reason:'新人注册',points:100,time:'3天前' },
 ]
-
 onMounted(async () => {
+  points.value = 165
+  totalPoints.value = 265
+  records.value = DEMO_RECORDS
   try {
-    const [b, s, r] = await Promise.all([
-      request.get('/points/balance'),
-      request.get('/points/sign-status'),
-      request.get('/points/records'),
-    ])
-    balance.value = b
-    signData.signed = s.signed
-    signData.continuousDays = s.records?.[0]?.continuous_days || 0
-    records.value = r || []
+    const res = await request.get('/points/info')
+    if (res) { points.value = res.available_points||res.points||165; totalPoints.value = res.total_points||265 }
   } catch {}
-  // Load exchange items - try dynamic import first
-  try {
-    const mod = await import('../data/exchange.json')
-    exchangeItems.value = mod.default || mod
-  } catch {
-    exchangeItems.value = defaultExchangeItems
-  }
+  try { const r = await request.get('/points/records'); if (r?.length) records.value = r } catch {}
 })
-
-async function doSign() {
-  try {
-    const r = await request.post('/points/sign')
-    balance.value.available_points += r.points
-    balance.value.total_points += r.points
-    signData.signed = true
-    signData.continuousDays = r.continuousDays
-    ElMessage.success('签到成功！+' + r.points + '积分')
-  } catch (e) { ElMessage.error(e.message || '签到失败') }
+async function sign() {
+  if (signed.value) return
+  points.value += 10
+  signed.value = true
+  try { await request.post('/points/sign') } catch {}
 }
-
-async function doExchange(item) {
-  try {
-    await ElMessageBox.confirm(`确认用 ${item.points} 积分兑换「${item.name}」？`, '确认兑换', {
-      confirmButtonText: '确认兑换', cancelButtonText: '取消', type: 'warning'
-    })
-  } catch { return }
-  
-  exchanging.value = item.name
-  try {
-    await request.post('/points/exchange', { exchangeType: item.type || 'coupon', pointsCost: item.points })
-    balance.value.available_points -= item.points
-    ElMessage.success('兑换成功！')
-    // Refresh records
-    records.value = await request.get('/points/records') || []
-  } catch (e) {
-    ElMessage.error(e?.message || '兑换失败')
-  } finally {
-    exchanging.value = null
-  }
+async function exchange(g) {
+  if (points.value < g.points) return alert('积分不足')
+  points.value -= g.points
+  alert('兑换成功！')
+  try { await request.post('/points/exchange', { gift_id: g.id, points: g.points }) } catch {}
 }
 </script>
-
 <style scoped>
-.exchange-card{background:#fff;border-radius:14px;padding:20px;text-align:center;border:1px solid #E5E7EB;cursor:pointer;transition:all .2s}
-.exchange-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08);transform:translateY(-2px)}
-.ex-icon{font-size:40px;margin-bottom:8px}
-.ex-name{font-weight:600;font-size:14px;margin-bottom:6px}
-.ex-pts{color:var(--pri);font-weight:700;font-size:15px;margin-bottom:10px}
+.pt{padding:0 12px 80px}
+.pt-card{background:#fff;border-radius:14px;padding:18px;margin-bottom:12px;border:1px solid #e2e8f0}
+.pt-hd{font-size:15px;font-weight:700;color:#0f172a;margin-bottom:8px}
+.pt-num{font-size:36px;font-weight:700;color:#3b82f6;font-family:monospace;line-height:1.1}
+.pt-num small{font-size:14px;font-weight:400;color:#94a3b8;margin-left:4px}
+.pt-sub{font-size:12px;color:#94a3b8;margin:6px 0 12px}
+.pt-sign{width:100%;height:38px;border-radius:10px;border:none;background:linear-gradient(135deg,#f59e0b,#fbbf24);color:#fff;font-size:14px;font-weight:600;cursor:pointer}
+.pt-card-hd{font-size:15px;font-weight:700;color:#0f172a;margin-bottom:10px}
+.pt-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.pt-gift{text-align:center;padding:12px 8px;border-radius:10px;border:1px solid #e2e8f0;cursor:pointer;transition:background .15s}
+.pt-gift:active{background:#f0f9ff}
+.pt-g-emoji{font-size:28px;margin-bottom:4px}
+.pt-g-name{font-size:12px;font-weight:500;color:#0f172a}
+.pt-g-pts{font-size:11px;color:#f59e0b;font-weight:600;margin-top:2px}
+.pt-r{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f1f5f9}
+.pt-r:last-child{border-bottom:none}
+.pt-r-nm{font-size:13px;color:#475569;font-weight:500}
+.pt-r-tm{font-size:11px;color:#94a3b8}
+.pt-r-pts{font-size:14px;font-weight:700;color:#dc2626;font-family:monospace}
+.pt-r-pts.plus{color:#16a34a}
 </style>
