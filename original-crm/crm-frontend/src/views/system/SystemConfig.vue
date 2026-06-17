@@ -95,6 +95,7 @@ const categories = [
 const activeCategory = ref('')
 const configList = ref([])
 const loading = ref(false)
+const SC = [{config_key:"site_name",config_value:"智云CRM",config_type:"基础配置",description:"系统显示名称"},{config_key:"copyright",config_value:"2026 CRM Platform",config_type:"基础配置",description:"版权信息"},{config_key:"sms_enabled",config_value:"true",config_type:"功能开关",description:"短信通知开关"}]
 const allConfigs = ref([])
 
 function getBoolValue(val) {

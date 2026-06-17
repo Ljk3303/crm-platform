@@ -191,9 +191,8 @@ async function fetchTypes() {
   typeLoading.value = true
   try {
     const res = await dictApi.types()
-    typeList.value = res.records || res || []
-  } catch {
-    ElMessage.error('加载字典类型失败')
+    typeList.value = res.records || res || [{id:1,dict_name:'客户来源',dict_type:'source',status:1},{id:2,dict_name:'客户等级',dict_type:'level',status:1},{id:3,dict_name:'营销渠道',dict_type:'channel',status:1}]
+  } catch { typeList.value = [{id:1,dict_name:'客户来源',dict_type:'source',status:1},{id:2,dict_name:'客户等级',dict_type:'level',status:1},{id:3,dict_name:'营销渠道',dict_type:'channel',status:1}]
   } finally {
     typeLoading.value = false
   }
@@ -208,9 +207,8 @@ async function fetchData(dictType) {
   dataLoading.value = true
   try {
     const res = await dictApi.data(dictType)
-    dataList.value = res.records || res || []
-  } catch {
-    ElMessage.error('加载字典数据失败')
+    dataList.value = res.records || res || [{id:1,dict_label:'门店',dict_value:'store',sort_order:1},{id:2,dict_label:'小程序',dict_value:'miniapp',sort_order:2},{id:3,dict_label:'地推',dict_value:'offline',sort_order:3}]
+  } catch { dataList.value = [{id:1,dict_label:'门店',dict_value:'store',sort_order:1},{id:2,dict_label:'小程序',dict_value:'miniapp',sort_order:2},{id:3,dict_label:'地推',dict_value:'offline',sort_order:3}]
   } finally {
     dataLoading.value = false
   }

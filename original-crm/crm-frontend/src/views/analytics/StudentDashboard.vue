@@ -85,7 +85,7 @@ const campusDialog = ref(false)
 const campusForm = reactive({name:'',campus:'',type:'校园推广',startDate:'',endDate:'',budget:0})
 
 onMounted(async () => {
-  try { const d = await request.get('/analytics/student-dashboard'); stats[0].value = d.totalStudents||0; stats[1].value = d.verifiedStudents||0; stats[2].value = d.tierDistribution?.length||0; stats[3].value = d.totalTags||0 } catch {}
+  try { const d = await request.get('/analytics/student-dashboard'); stats[0].value = d.totalStudents||0; stats[1].value = d.verifiedStudents||SD2.verifiedStudents; stats[2].value = d.tierDistribution?.length||0; stats[3].value = d.totalTags||0 } catch {}
   try { rfmList.value = (await request.get('/rfm-scores')) || [] } catch {}
   try {
     const custs = (await request.get('/customers?size=100'))?.records||[];

@@ -171,6 +171,7 @@ import { teamApi, customerApi } from '@/api/index'
 
 const teamList = ref([])
 const loading = ref(false)
+const ST = [{id:1,name:"华南大区",leader_name:"张伟",description:"负责广东、福建、广西",member_count:8},{id:2,name:"华东大区",leader_name:"李明",description:"负责江浙沪",member_count:6},{id:3,name:"华北大区",leader_name:"王芳",description:"负责京津冀",member_count:5}]
 const page = ref(1)
 const pageSize = ref(10)
 const total = ref(0)

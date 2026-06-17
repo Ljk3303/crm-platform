@@ -102,6 +102,7 @@ import { documentApi } from '@/api/index'
 
 const documents = ref([])
 const loading = ref(false)
+const DD = [{id:1,name:"销售手册2026.pdf",file_type:"pdf",file_size:2048,category:"销售资料",created_at:"2026-06-15"},{id:2,name:"产品白皮书.docx",file_type:"doc",file_size:1536,category:"产品资料",created_at:"2026-06-14"},{id:3,name:"合同模板.docx",file_type:"doc",file_size:256,category:"合同模板",created_at:"2026-06-13"}]
 const page = ref(1)
 const pageSize = ref(12)
 const total = ref(0)

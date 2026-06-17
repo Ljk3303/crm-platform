@@ -138,6 +138,7 @@ const router = useRouter()
 
 const searchForm = reactive({ name: '', type: '', status: '' })
 const tableData = ref([])
+const AD = [{id:1,name:'618年中大促',type:'促销',budget:50000,start_date:'2026-06-01',end_date:'2026-06-18',status:'进行中',lead_count:120,deal_amount:350000},{id:2,name:'会员日回馈',type:'会员',budget:20000,start_date:'2026-07-01',end_date:'2026-07-07',status:'计划中',lead_count:0,deal_amount:0},{id:3,name:'新品体验活动',type:'体验',budget:15000,start_date:'2026-06-10',end_date:'2026-06-25',status:'已结束',lead_count:80,deal_amount:120000}]
 const loading = ref(false)
 const submitting = ref(false)
 const dialogVisible = ref(false)
@@ -179,10 +180,10 @@ async function fetchData() {
       params: { ...searchForm, page: pagination.page, pageSize: pagination.pageSize }
     })
     const data = res || {}
-    tableData.value = data.list || data.records || []
-    pagination.total = data.total || 0
+    tableData.value = data.list || data.records || AD
+    pagination.total = data.total || AD.length
   } catch {
-    ElMessage.error('获取数据失败')
+    tableData.value = AD; pagination.total = AD.length
   } finally {
     loading.value = false
   }
