@@ -114,7 +114,8 @@ async function fetchList() {
     const res = await getCustomers({ page: pagination.page, size: pagination.size, name: search.name, level: search.level })
     customerList.value = res.records || DEMO_CUSTOMERS
     pagination.total = res.total || DEMO_CUSTOMERS.length
-  } catch {
+  } catch (e) {
+    console.error('fetchList failed', e)
     customerList.value = DEMO_CUSTOMERS
     pagination.total = DEMO_CUSTOMERS.length
   }
@@ -132,7 +133,7 @@ async function handleSave() {
     ElMessage.success('保存成功')
     dialogVisible.value = false
     fetchList()
-  } catch { ElMessage.error('保存失败') }
+  } catch (e) { ElMessage.error('保存失败: ' + (e?.message || '请检查网络连接')) }
   finally { saving.value = false }
 }
 

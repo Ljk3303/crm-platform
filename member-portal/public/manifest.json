@@ -1,7 +1,7 @@
 {
-  "name": "CRM 会员商城",
-  "short_name": "CRM会员",
-  "description": "CRM智能零售平台 - 会员专属商城",
+  "name": "智云会员商城",
+  "short_name": "智云会员",
+  "description": "智云智能零售平台 - 会员专属商城",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",

@@ -84,13 +84,26 @@ function selectCoupon(c) {
   selectedCouponId.value = c.id
 }
 
+const loading = ref(false)
 onMounted(async () => {
-  try { items.value = await request.get('/cart/list') } catch {}
-  try { myCoupons.value = await request.get('/coupons/my-coupons') || []; myCoupons.value = myCoupons.value.filter(c => c.status!=='已使用' && c.status!=='expired') } catch {}
+  loading.value = true
+  try { items.value = await request.get('/cart/list') || [] } catch (e) { ElMessage.error('购物车加载失败: ' + (e.message||'网络错误')) }
+  try { myCoupons.value = (await request.get('/coupons/my-coupons') || []).filter(c => c.status!=='已使用' && c.status!=='expired') } catch {}
+  loading.value = false
 })
 
-async function updateQty(c) { try { await request.put('/cart/' + c.id, { quantity: c.quantity }) } catch {} }
-async function remove(id) { try { await request.delete('/cart/' + id); items.value = items.value.filter(i => i.id !== id) } catch {} }
+async function updateQty(c) {
+  try { await request.put('/cart/' + c.id, { quantity: c.quantity }) } catch (e) { ElMessage.error('更新失败: ' + (e.message||'网络错误')) }
+}
+async function remove(id) {
+  try {
+    await request.delete('/cart/' + id)
+    items.value = items.value.filter(i => i.id !== id)
+    ElMessage.success('已移除')
+  } catch (e) {
+    ElMessage.error('移除失败: ' + (e.message||'网络错误'))
+  }
+}
 async function checkout() {
   if (!items.value.length) return
   submitting.value = true

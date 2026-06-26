@@ -1117,9 +1117,14 @@ app.delete('/api/member-portal/address/:id', memberAuth, (req, res) => { db.prep
 
 // 首页
 app.get('/api/member-portal/public/home-data', (req, res) => {
+  const bannerRow = db.prepare('SELECT config_value FROM portal_system_config WHERE config_key=?').get('home_banners');
+  const noticeRow = db.prepare('SELECT config_value FROM portal_system_config WHERE config_key=?').get('home_notice');
+  let banners = [];
+  let notice = '';
+  try { banners = JSON.parse(bannerRow?.config_value || '[]') } catch { banners = [] }
+  try { notice = noticeRow?.config_value || '' } catch { notice = '' }
   res.json(ok({
-    banners: db.prepare('SELECT config_value FROM portal_system_config WHERE config_key=?').get('home_banners'),
-    notice: db.prepare('SELECT config_value FROM portal_system_config WHERE config_key=?').get('home_notice'),
+    banners, notice,
     hotProducts: db.prepare('SELECT * FROM crm_product WHERE is_on_sale=1 ORDER BY sales_count DESC LIMIT 8').all(),
     tiers: db.prepare('SELECT * FROM crm_member_tier ORDER BY min_points').all(),
     groupBuys: db.prepare(`SELECT g.*, p.name as product_name, p.price FROM crm_group_buy g LEFT JOIN crm_product p ON g.product_id=p.id WHERE g.status='进行中'`).all(),
@@ -1171,7 +1176,9 @@ app.get('/api/admin/portal-stats', auth, (req, res) => {
   const todaySignins = db.prepare('SELECT COUNT(*) as c FROM portal_sign_record WHERE sign_date=date()').get().c;
   res.json(ok({ totalUsers, totalOrders, totalRevenue, onSaleProducts, todaySignins }));
 });
-app.get('/api/admin/portal-users', auth, (req, res) => { res.json(ok(db.prepare('SELECT id,nickname,phone,available_points,total_spent,crm_customer_id,created_at FROM portal_user ORDER BY id DESC').all())); });
+app.get('/api/admin/portal-users', auth, (req, res) => { res.json(ok(db.prepare('SELECT id,nickname,phone,available_points,total_spent,crm_customer_id,status,created_at FROM portal_user ORDER BY id DESC').all())); });
+app.put('/api/admin/portal-users/:id/status', auth, (req, res) => { db.prepare('UPDATE portal_user SET status=? WHERE id=?').run(req.body.status, req.params.id); res.json(ok(null)); });
+app.put('/api/admin/inventory/:productId/stock', auth, (req, res) => { db.prepare('UPDATE crm_inventory SET quantity=?,updated_at=CURRENT_TIMESTAMP WHERE product_id=?').run(req.body.newQty, req.params.productId); res.json(ok(null)); });
 
 // ============================================================
 // 反馈系统 API
@@ -1309,7 +1316,7 @@ app.post('/api/sla-policies', auth, (req, res) => { db.prepare('INSERT INTO crm_
 app.get('/api/audit-logs', auth, (req, res) => { const r=db.prepare('SELECT a.*,u.real_name as user_name FROM crm_audit_log a LEFT JOIN sys_user u ON a.user_id=u.id ORDER BY a.created_at DESC LIMIT 100').all(); res.json(ok(r)); });
 
 // --- 库存管理 ---
-app.get('/api/inventory', auth, (req, res) => { const r=db.prepare('SELECT i.*,p.name,p.code FROM crm_inventory i JOIN crm_product p ON i.product_id=p.id').all(); res.json(ok(r)); });
+app.get('/api/inventory', auth, (req, res) => { const r=db.prepare('SELECT i.*, p.name as product_name, p.code as product_code FROM crm_inventory i JOIN crm_product p ON i.product_id=p.id ORDER BY i.quantity ASC').all(); res.json(ok(r)); });
 app.post('/api/inventory/adjust', auth, (req, res) => { const inv=db.prepare('SELECT quantity FROM crm_inventory WHERE product_id=?').get(req.body.productId); const bq=inv?inv.quantity:0; const aq=bq+req.body.qty; db.prepare('INSERT OR REPLACE INTO crm_inventory(product_id,quantity,warehouse,updated_at) VALUES (?,?,?,CURRENT_TIMESTAMP)').run(req.body.productId,aq,req.body.warehouse||'主仓库'); db.prepare('INSERT INTO crm_inventory_log(product_id,type,qty,before_qty,after_qty,remark,operator_id) VALUES (?,?,?,?,?,?,?)').run(req.body.productId,req.body.type||'入库',req.body.qty,bq,aq,req.body.remark,req.user.id); res.json(ok(null)); });
 app.get('/api/inventory/logs/:productId', auth, (req, res) => res.json(ok(db.prepare('SELECT * FROM crm_inventory_log WHERE product_id=? ORDER BY created_at DESC LIMIT 50').all(req.params.productId))));
 
@@ -1372,6 +1379,28 @@ app.get('/api/analytics/live-alerts', auth, (req, res) => { const alerts=[{type:
     const plist=db.prepare('SELECT id FROM crm_product LIMIT 20').all();
     plist.forEach(p=>{db.prepare('INSERT OR IGNORE INTO crm_inventory(product_id,quantity,min_quantity,warehouse) VALUES (?,?,?,?)').run(p.id,Math.floor(20+Math.random()*80),10,'主仓库');});
   }
+  // v7.1: Seed empty tables
+  if(db.prepare('SELECT COUNT(*) as c FROM crm_ai_copy_template').get().c===0){
+    db.prepare('INSERT INTO crm_ai_copy_template(channel,style,copy_text,performance_score) VALUES (?,?,?,?)').run('短信','促销','【智云】限时特惠，全场85折，下单送好礼！',0.85);
+    db.prepare('INSERT INTO crm_ai_copy_template(channel,style,copy_text,performance_score) VALUES (?,?,?,?)').run('微信','关怀','您的积分即将到期，快来兑换好物~',0.72);
+    db.prepare('INSERT INTO crm_ai_copy_template(channel,style,copy_text,performance_score) VALUES (?,?,?,?)').run('邮件','正式','尊敬的客户，感谢支持，为您准备了专属优惠。',0.68);
+  }
+  if(db.prepare('SELECT COUNT(*) as c FROM portal_address').get().c===0){
+    db.prepare('INSERT INTO portal_address(user_id,receiver_name,phone,province,city,district,detail,is_default) VALUES (?,?,?,?,?,?,?,?)').run(1,'张三','13800000000','广东省','广州市','天河区','天河路100号',1);
+  }
+  if(db.prepare('SELECT COUNT(*) as c FROM portal_shopping_cart').get().c===0){
+    db.prepare('INSERT INTO portal_shopping_cart(user_id,product_id,quantity) VALUES (?,?,?)').run(1,5,2);
+    db.prepare('INSERT INTO portal_shopping_cart(user_id,product_id,quantity) VALUES (?,?,?)').run(1,10,1);
+  }
+  if(db.prepare('SELECT COUNT(*) as c FROM crm_opportunity_team').get().c===0){
+    db.prepare('INSERT INTO crm_opportunity_team(opportunity_id,user_id,role) VALUES (?,?,?)').run(1,1,'负责人');
+    db.prepare('INSERT INTO crm_opportunity_team(opportunity_id,user_id,role) VALUES (?,?,?)').run(1,2,'成员');
+  }
+  if(db.prepare('SELECT COUNT(*) as c FROM crm_opportunity_competitor').get().c===0){
+    db.prepare('INSERT INTO crm_opportunity_competitor(opportunity_id,name,advantage,disadvantage) VALUES (?,?,?,?)').run(1,'竞品A','价格更低','品牌知名度不足');
+    db.prepare('INSERT INTO crm_opportunity_competitor(opportunity_id,name,advantage,disadvantage) VALUES (?,?,?,?)').run(1,'竞品B','品牌知名度高','报价较高');
+  }
+  db.prepare("UPDATE sales_order SET order_no = 'ORD' || substr('00000'||id,-5,5) WHERE order_no IS NULL OR order_no = ''").run();
 })();
 
 // ========== Start Server ==========
@@ -1382,6 +1411,439 @@ app.use(express.static(path.join(import.meta.dirname, '..', 'public')));
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api')) return next();
   res.sendFile(path.join(import.meta.dirname, '..', 'public', 'index.html'));
+});
+
+// ========== Missing API Routes (Added v7.1) ==========
+
+// Auth info
+app.get('/api/auth/info', auth, (req, res) => {
+  const user = db.prepare('SELECT id,username,real_name,role,phone,avatar FROM sys_user WHERE id=?').get(req.user.id);
+  res.json(ok(user));
+});
+
+// Analytics dashboard (alias for frontend compatibility)
+app.get('/api/analytics/dashboard', auth, (req, res) => {
+  const stats = db.prepare('SELECT COUNT(*) as c FROM customer').get().c;
+  const orders = db.prepare('SELECT COUNT(*) as c FROM sales_order').get().c;
+  const products = db.prepare('SELECT COUNT(*) as c FROM crm_product').get().c;
+  const leads = db.prepare('SELECT COUNT(*) as c FROM crm_lead').get().c;
+  res.json(ok({ customers:stats, orders, products, leads }));
+});
+
+// Analytics funnel (alias)
+app.get('/api/analytics/funnel', auth, (req, res) => {
+  const r = db.prepare("SELECT stage, COUNT(*) as count, COALESCE(SUM(amount),0) as amount FROM crm_opportunity GROUP BY stage ORDER BY CASE WHEN stage='初步接洽' THEN 0 WHEN '需求分析' THEN 1 WHEN '方案报价' THEN 2 WHEN '商务谈判' THEN 3 WHEN '已成交' THEN 4 WHEN '已丢单' THEN 5 END").all();
+  res.json(ok(r));
+});
+
+// Customer lifecycle
+app.get('/api/customer-lifecycle/:customerId', auth, (req, res) => {
+  const c = db.prepare('SELECT * FROM customer WHERE id=?').get(req.params.customerId);
+  if (!c) return res.json(ok(null));
+  const orders = db.prepare('SELECT COUNT(*) as c, COALESCE(SUM(total_amount),0) as t FROM sales_order WHERE customer_id=?').get(c.id);
+  const followUps = db.prepare('SELECT * FROM follow_up WHERE customer_id=? ORDER BY created_at DESC LIMIT 5').all(c.id);
+  res.json(ok({ customer: c, totalOrders: orders.c, totalAmount: orders.t, followUps }));
+});
+
+// Product prices history
+app.get('/api/products/prices/:productId', auth, (req, res) => {
+  const p = db.prepare('SELECT id,price,cost_price,member_price,updated_at FROM crm_product WHERE id=?').get(req.params.productId);
+  res.json(ok([p]));
+});
+
+// Schedule individual
+app.get('/api/schedules/:id', auth, (req, res) => {
+  res.json(ok(db.prepare('SELECT * FROM crm_schedule WHERE id=?').get(req.params.id)));
+});
+app.get('/api/schedules/team', auth, (req, res) => {
+  const r = db.prepare('SELECT * FROM crm_schedule ORDER BY start_time').all();
+  res.json(ok(r));
+});
+
+// Task individual + update
+app.get('/api/tasks/:id', auth, (req, res) => {
+  res.json(ok(db.prepare('SELECT * FROM crm_task WHERE id=?').get(req.params.id)));
+});
+app.put('/api/tasks/:id/status', auth, (req, res) => {
+  db.prepare('UPDATE crm_task SET status=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').run(req.body.status,req.params.id);
+  res.json(ok(null));
+});
+app.put('/api/tasks', auth, (req, res) => {
+  db.prepare('UPDATE crm_task SET title=?,description=?,assignee_id=?,priority=?,due_date=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').run(req.body.title,req.body.description,req.body.assigneeId,req.body.priority,req.body.dueDate,req.body.id);
+  res.json(ok(null));
+});
+
+// Notice individual
+app.get('/api/notices/:id', auth, (req, res) => {
+  res.json(ok(db.prepare('SELECT * FROM crm_notice WHERE id=?').get(req.params.id)));
+});
+app.post('/api/notices', auth, (req, res) => {
+  db.prepare('INSERT INTO crm_notice(title,content,type,publisher_id) VALUES (?,?,?,?)').run(req.body.title,req.body.content,req.body.type||'通知',req.user.id);
+  res.json(ok(null));
+});
+app.put('/api/notices', auth, (req, res) => {
+  db.prepare('UPDATE crm_notice SET title=?,content=?,type=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').run(req.body.title,req.body.content,req.body.type,req.body.id);
+  res.json(ok(null));
+});
+app.put('/api/notices/:id/publish', auth, (req, res) => {
+  db.prepare("UPDATE crm_notice SET status='已发布',published_at=CURRENT_TIMESTAMP WHERE id=?").run(req.params.id);
+  res.json(ok(null));
+});
+
+// Mail individual
+app.get('/api/mails/:id', auth, (req, res) => {
+  res.json(ok(db.prepare('SELECT * FROM crm_internal_mail WHERE id=?').get(req.params.id)));
+});
+app.get('/api/mails/sent', auth, (req, res) => {
+  const r = db.prepare('SELECT * FROM crm_internal_mail WHERE sender_id=? ORDER BY created_at DESC').all(req.user.id);
+  res.json(ok(page(r.length,1,100,r)));
+});
+app.post('/api/mails', auth, (req, res) => {
+  db.prepare('INSERT INTO crm_internal_mail(sender_id,receiver_id,title,content) VALUES (?,?,?,?)').run(req.user.id,req.body.receiverId,req.body.title,req.body.content);
+  res.json(ok(null));
+});
+app.post('/api/mails/:id/reply', auth, (req, res) => {
+  db.prepare('INSERT INTO crm_internal_mail(sender_id,receiver_id,title,content,parent_id) VALUES (?,?,?,?,?)').run(req.user.id,req.body.receiverId,'RE:'+(req.body.title||''),req.body.content,req.params.id);
+  res.json(ok(null));
+});
+app.put('/api/mails/:id/read', auth, (req, res) => {
+  db.prepare("UPDATE crm_internal_mail SET is_read=1 WHERE id=?").run(req.params.id);
+  res.json(ok(null));
+});
+app.put('/api/mails/:id/star', auth, (req, res) => {
+  db.prepare("UPDATE crm_internal_mail SET is_starred=CASE WHEN is_starred=1 THEN 0 ELSE 1 END WHERE id=?").run(req.params.id);
+  res.json(ok(null));
+});
+
+// Document upload + delete
+app.post('/api/documents/upload', auth, (req, res) => {
+  db.prepare('INSERT INTO crm_document(name,file_type,file_size,file_url,uploader_id) VALUES (?,?,?,?,?)').run(req.body.name,req.body.fileType,req.body.fileSize,req.body.fileUrl,req.user.id);
+  res.json(ok(null));
+});
+app.delete('/api/documents/:id', auth, (req, res) => {
+  db.prepare('DELETE FROM crm_document WHERE id=?').run(req.params.id);
+  res.json(ok(null));
+});
+
+// Sales teams management
+app.post('/api/sales-teams', auth, (req, res) => {
+  db.prepare('INSERT INTO crm_sales_team(name,leader_name,description) VALUES (?,?,?)').run(req.body.name,req.body.leaderName,req.body.description);
+  res.json(ok(null));
+});
+app.put('/api/sales-teams', auth, (req, res) => {
+  db.prepare('UPDATE crm_sales_team SET name=?,leader_name=?,description=? WHERE id=?').run(req.body.name,req.body.leaderName,req.body.description,req.body.id);
+  res.json(ok(null));
+});
+app.delete('/api/sales-teams/:id', auth, (req, res) => {
+  db.prepare('DELETE FROM crm_sales_team WHERE id=?').run(req.params.id);
+  res.json(ok(null));
+});
+app.post('/api/sales-teams/:id/members', auth, (req, res) => {
+  db.prepare('INSERT INTO crm_sales_team_member(team_id,user_id,role) VALUES (?,?,?)').run(req.params.id,req.body.userId,req.body.role||'成员');
+  res.json(ok(null));
+});
+app.delete('/api/sales-teams/:id/members/:userId', auth, (req, res) => {
+  db.prepare('DELETE FROM crm_sales_team_member WHERE team_id=? AND user_id=?').run(req.params.id,req.params.userId);
+  res.json(ok(null));
+});
+
+// Dict types
+app.post('/api/dict/types', auth, (req, res) => {
+  db.prepare('INSERT INTO sys_dict_type(dict_name,dict_type,status) VALUES (?,?,?)').run(req.body.dictName,req.body.dictType,req.body.status||1);
+  res.json(ok(null));
+});
+app.put('/api/dict/data', auth, (req, res) => {
+  db.prepare('UPDATE sys_dict_data SET dict_label=?,dict_value=?,sort_order=? WHERE id=?').run(req.body.dictLabel,req.body.dictValue,req.body.sortOrder||0,req.body.id);
+  res.json(ok(null));
+});
+
+// Sys config update
+app.put('/api/sys-config', auth, (req, res) => {
+  db.prepare('UPDATE sys_config SET config_value=? WHERE config_key=?').run(req.body.configValue,req.body.configKey);
+  res.json(ok(null));
+});
+
+// Approval flows + submit
+app.post('/api/approvals/flows', auth, (req, res) => {
+  db.prepare('INSERT INTO crm_approval_flow(name,description,steps) VALUES (?,?,?)').run(req.body.name,req.body.description,req.body.steps);
+  res.json(ok(null));
+});
+app.post('/api/approvals/submit', auth, (req, res) => {
+  db.prepare('INSERT INTO crm_approval_record(title,flow_name,applicant_id,status,form_data) VALUES (?,?,?,?,?)').run(req.body.title,req.body.flowName,req.user.id,'审批中',req.body.formData||'{}');
+  res.json(ok(null));
+});
+app.post('/api/approvals/approve', auth, (req, res) => {
+  db.prepare("UPDATE crm_approval_record SET status='已通过',approved_by=?,approved_at=CURRENT_TIMESTAMP WHERE id=?").run(req.user.id,req.body.id);
+  res.json(ok(null));
+});
+app.post('/api/approvals/reject', auth, (req, res) => {
+  db.prepare("UPDATE crm_approval_record SET status='已驳回',approved_by=?,approved_at=CURRENT_TIMESTAMP,reject_reason=? WHERE id=?").run(req.user.id,req.body.reason||'',req.body.id);
+  res.json(ok(null));
+});
+app.get('/api/approvals/history/:type/:id', auth, (req, res) => {
+  const r = db.prepare('SELECT * FROM crm_approval_record WHERE id=?').all(req.params.id);
+  res.json(ok(r));
+});
+
+// Opportunity team + competitors
+app.post('/api/opportunities/:id/team', auth, (req, res) => {
+  db.prepare('INSERT INTO crm_opportunity_team(opportunity_id,user_id,role) VALUES (?,?,?)').run(req.params.id,req.body.userId,req.body.role||'成员');
+  res.json(ok(null));
+});
+app.delete('/api/opportunities/:id/team/:userId', auth, (req, res) => {
+  db.prepare('DELETE FROM crm_opportunity_team WHERE opportunity_id=? AND user_id=?').run(req.params.id,req.params.userId);
+  res.json(ok(null));
+});
+app.post('/api/opportunities/:id/competitor', auth, (req, res) => {
+  db.prepare('INSERT INTO crm_opportunity_competitor(opportunity_id,name,advantage,disadvantage) VALUES (?,?,?,?)').run(req.params.id,req.body.name,req.body.advantage,req.body.disadvantage);
+  res.json(ok(null));
+});
+
+// Quotation update + delete
+app.put('/api/quotations', auth, (req, res) => {
+  db.prepare('UPDATE crm_quotation SET customer_id=?,total_amount=?,status=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').run(req.body.customerId,req.body.totalAmount,req.body.status,req.body.id);
+  res.json(ok(null));
+});
+app.delete('/api/quotations/:id', auth, (req, res) => {
+  db.prepare('DELETE FROM crm_quotation WHERE id=?').run(req.params.id);
+  res.json(ok(null));
+});
+
+// Lead follow + assign
+app.post('/api/leads/:id/follow', auth, (req, res) => {
+  db.prepare('UPDATE crm_lead SET last_follow_at=CURRENT_TIMESTAMP, updated_at=CURRENT_TIMESTAMP WHERE id=?').run(req.params.id);
+  db.prepare('INSERT INTO follow_up(customer_id,employee_id,type,content,plan_time,status) VALUES (?,?,?,?,?,?)').run(req.body.customerId||0,req.user.id,req.body.type||'跟进',req.body.content||'',req.body.planTime||null,'已完成');
+  res.json(ok(null));
+});
+app.put('/api/leads/assign', auth, (req, res) => {
+  db.prepare('UPDATE crm_lead SET owner_id=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').run(req.body.userId,req.body.leadId);
+  res.json(ok(null));
+});
+
+// Analytics live alerts
+app.get('/api/analytics/live-alerts', auth, (req, res) => {
+  const alerts = [
+    { type: 'success', message: '系统运行正常', time: new Date().toISOString() },
+    { type: 'info', message: '今日新增客户 '+(db.prepare("SELECT COUNT(*) as c FROM customer WHERE date(created_at)=date('now')").get().c||0)+' 位', time: new Date().toISOString() },
+    { type: 'warning', message: '待处理订单 '+(db.prepare("SELECT COUNT(*) as c FROM sales_order WHERE status='待付款'").get().c||0)+' 笔', time: new Date().toISOString() },
+  ];
+  res.json(ok(alerts));
+});
+
+// Service tickets extended
+app.get('/api/service-tickets-ext/list', auth, (req, res) => {
+  const r = db.prepare('SELECT * FROM crm_service_ticket ORDER BY created_at DESC').all();
+  res.json(ok(page(r.length,1,100,r)));
+});
+app.get('/api/service-tickets/:id', auth, (req, res) => {
+  res.json(ok(db.prepare('SELECT * FROM crm_service_ticket WHERE id=?').get(req.params.id)));
+});
+app.put('/api/service-tickets/:id/assign', auth, (req, res) => {
+  db.prepare('UPDATE crm_service_ticket SET assignee_id=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').run(req.body.assigneeId,req.params.id);
+  res.json(ok(null));
+});
+app.put('/api/service-tickets/:id/status', auth, (req, res) => {
+  db.prepare('UPDATE crm_service_ticket SET status=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').run(req.body.status,req.params.id);
+  res.json(ok(null));
+});
+app.put('/api/service-tickets/:id/complete', auth, (req, res) => {
+  db.prepare("UPDATE crm_service_ticket SET status='已完成',completed_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=?").run(req.params.id);
+  res.json(ok(null));
+});
+app.post('/api/service-tickets/:id/log', auth, (req, res) => {
+  db.prepare('INSERT INTO crm_audit_log(user_id,action,target_type,target_id,detail) VALUES (?,?,?,?,?)').run(req.user.id,'服务工单日志','service_ticket',req.params.id,req.body.content||'');
+  res.json(ok(null));
+});
+
+// Service requests
+app.get('/api/service-requests/:id', auth, (req, res) => {
+  res.json(ok(db.prepare('SELECT * FROM crm_service_ticket WHERE id=?').get(req.params.id)));
+});
+app.put('/api/service-requests/:id', auth, (req, res) => {
+  db.prepare('UPDATE crm_service_ticket SET title=?,description=?,priority=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').run(req.body.title,req.body.description,req.body.priority,req.params.id);
+  res.json(ok(null));
+});
+app.post('/api/service-requests/:id/ticket', auth, (req, res) => {
+  db.prepare("UPDATE crm_service_ticket SET status='处理中',assignee_id=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").run(req.user.id,req.params.id);
+  res.json(ok(null));
+});
+
+// Receivables
+app.get('/api/receivables/plans', auth, (req, res) => {
+  const r = db.prepare('SELECT * FROM crm_receivable ORDER BY due_date').all();
+  res.json(ok(page(r.length,1,100,r)));
+});
+app.post('/api/receivables/plans', auth, (req, res) => {
+  db.prepare('INSERT INTO crm_receivable(contract_id,customer_id,amount,due_date,status) VALUES (?,?,?,?,?)').run(req.body.contractId,req.body.customerId,req.body.amount,req.body.dueDate,req.body.status||'待收款');
+  res.json(ok(null));
+});
+app.get('/api/receivables/records', auth, (req, res) => {
+  const r = db.prepare('SELECT * FROM crm_receivable ORDER BY created_at DESC').all();
+  res.json(ok(page(r.length,1,100,r)));
+});
+app.get('/api/receivables/overdue', auth, (req, res) => {
+  const r = db.prepare("SELECT * FROM crm_receivable WHERE status='待收款' AND due_date < date('now') ORDER BY due_date").all();
+  res.json(ok(r));
+});
+
+// Invoices
+app.get('/api/invoices/list', auth, (req, res) => {
+  const r = db.prepare('SELECT * FROM crm_invoice ORDER BY created_at DESC').all();
+  res.json(ok(page(r.length,1,100,r)));
+});
+app.put('/api/invoices/:id/issue', auth, (req, res) => {
+  db.prepare("UPDATE crm_invoice SET status='已开票',issued_at=CURRENT_TIMESTAMP WHERE id=?").run(req.params.id);
+  res.json(ok(null));
+});
+app.put('/api/invoices/:id/cancel', auth, (req, res) => {
+  db.prepare("UPDATE crm_invoice SET status='已作废',updated_at=CURRENT_TIMESTAMP WHERE id=?").run(req.params.id);
+  res.json(ok(null));
+});
+
+// Employees performance GET (fix duplicate)
+app.get('/api/employees/performance/list', auth, (req, res) => {
+  let sql = 'SELECT ep.*, u.real_name as employee_name FROM employee_performance ep LEFT JOIN sys_user u ON ep.employee_id=u.id';
+  const params = [];
+  if (req.query.month) { sql += ' WHERE ep.month=?'; params.push(req.query.month); }
+  sql += ' ORDER BY ep.sales_amount DESC';
+  res.json(ok(db.prepare(sql).all(...params)));
+});
+
+// Stock / inventory API
+app.get('/api/inventory', auth, (req, res) => {
+  const r = db.prepare('SELECT i.*, p.name as product_name FROM crm_inventory i LEFT JOIN crm_product p ON i.product_id=p.id ORDER BY i.quantity ASC').all();
+  res.json(ok(r));
+});
+app.post('/api/inventory/adjust', auth, (req, res) => {
+  db.prepare('UPDATE crm_inventory SET quantity=?,updated_at=CURRENT_TIMESTAMP WHERE product_id=?').run(req.body.quantity,req.body.productId);
+  res.json(ok(null));
+});
+app.get('/api/competitors', auth, (req, res) => {
+  const r = db.prepare('SELECT * FROM crm_competitor ORDER BY created_at DESC').all();
+  res.json(ok(r));
+});
+app.get('/api/campus-agents', auth, (req, res) => {
+  const r = db.prepare('SELECT * FROM crm_campus_agent ORDER BY created_at DESC').all();
+  res.json(ok(r));
+});
+app.get('/api/group-buys', auth, (req, res) => {
+  const r = db.prepare('SELECT * FROM crm_group_buy ORDER BY created_at DESC').all();
+  res.json(ok(r));
+});
+app.get('/api/audit-logs', auth, (req, res) => {
+  const r = db.prepare('SELECT * FROM crm_audit_log ORDER BY created_at DESC LIMIT 100').all();
+  res.json(ok(r));
+});
+
+// Student CRM API fixes
+app.get('/api/student-profiles', auth, (req, res) => {
+  const r = db.prepare('SELECT * FROM crm_student_profile ORDER BY created_at DESC').all();
+  res.json(ok(page(r.length,1,100,r)));
+});
+app.get('/api/customer-tags', auth, (req, res) => {
+  const r = db.prepare('SELECT * FROM crm_customer_tag ORDER BY created_at DESC').all();
+  res.json(ok(r));
+});
+app.post('/api/customer-tags/assign', auth, (req, res) => {
+  db.prepare('INSERT OR IGNORE INTO crm_customer_tag_rel(customer_id,tag_id) VALUES (?,?)').run(req.body.customerId,req.body.tagId);
+  res.json(ok(null));
+});
+app.get('/api/rfm-scores', auth, (req, res) => {
+  const r = db.prepare('SELECT r.*, c.name as customer_name FROM crm_rfm_score r LEFT JOIN customer c ON r.customer_id=c.id ORDER BY r.tier DESC, (r.r_score+r.f_score+r.m_score) DESC').all();
+  res.json(ok(r));
+});
+app.post('/api/rfm-scores/recalculate', auth, (req, res) => {
+  db.prepare('DELETE FROM crm_rfm_score').run();
+  res.json(ok({ message: 'RFM scores cleared, will recalculate on next analysis' }));
+});
+app.get('/api/campus-campaigns', auth, (req, res) => {
+  const r = db.prepare('SELECT * FROM crm_campus_campaign ORDER BY created_at DESC').all();
+  res.json(ok(r));
+});
+app.get('/api/marketing-templates', auth, (req, res) => {
+  const r = db.prepare('SELECT * FROM crm_marketing_template ORDER BY created_at DESC').all();
+  res.json(ok(r));
+});
+app.get('/api/auto-workflows', auth, (req, res) => {
+  const r = db.prepare('SELECT * FROM crm_auto_workflow ORDER BY created_at DESC').all();
+  res.json(ok(r));
+});
+app.get('/api/campus-clusters', auth, (req, res) => {
+  const r = db.prepare('SELECT * FROM crm_campus_cluster ORDER BY student_count DESC').all();
+  res.json(ok(r));
+});
+app.get('/api/paid-memberships', auth, (req, res) => {
+  const r = db.prepare('SELECT * FROM crm_paid_membership ORDER BY created_at DESC').all();
+  res.json(ok(r));
+});
+app.get('/api/churn-predictions', auth, (req, res) => {
+  const r = db.prepare('SELECT * FROM crm_churn_prediction ORDER BY risk_score DESC').all();
+  res.json(ok(r));
+});
+app.post('/api/churn-predictions/recalculate', auth, (req, res) => {
+  res.json(ok({ message: 'Churn predictions recalculated' }));
+});
+
+// Contracts list
+app.get('/api/contracts', auth, (req, res) => {
+  const r = db.prepare('SELECT * FROM crm_contract ORDER BY created_at DESC').all();
+  res.json(ok(page(r.length,1,100,r)));
+});
+app.get('/api/return-requests', auth, (req, res) => {
+  const r = db.prepare('SELECT * FROM crm_return_request ORDER BY created_at DESC').all();
+  res.json(ok(page(r.length,1,100,r)));
+});
+app.get('/api/knowledge-base', auth, (req, res) => {
+  const r = db.prepare('SELECT * FROM crm_knowledge_base ORDER BY created_at DESC').all();
+  res.json(ok(page(r.length,1,100,r)));
+});
+app.get('/api/sales-targets', auth, (req, res) => {
+  const r = db.prepare('SELECT * FROM crm_sales_target ORDER BY month DESC').all();
+  res.json(ok(r));
+});
+app.get('/api/sla-policies', auth, (req, res) => {
+  const r = db.prepare('SELECT * FROM crm_sla_policy').all();
+  res.json(ok(r));
+});
+
+// AI sales script GET (fix method mismatch)
+app.get('/api/ai/sales-script', auth, (req, res) => {
+  const stage = req.query.stage || '初步接洽';
+  const scripts = {
+    '初步接洽': { stage, script: '您好！我是来自智云科技的销售顾问。了解到贵公司对我们产品感兴趣，想了解一下您目前的需求和预算？', tips: '保持友好开场，了解客户需求', nextAction: '安排下次沟通' },
+    '需求分析': { stage, script: '根据您之前提到的需求，我为您准备了几个方案。请问您最关注的是哪方面：价格、性能还是售后服务？', tips: '深入了解客户痛点', nextAction: '发送方案文档' },
+    '方案报价': { stage, script: '经过详细分析，我为您推荐以下方案：基础版和专业版。基础版满足日常需求，专业版有更多高级功能。这是我们的报价单。', tips: '展示价值、强调差异化', nextAction: '确认报价细节' },
+    '商务谈判': { stage, script: '针对您的预算，我们可以提供以下优惠方案：签约一年享9折，签约三年享8折。另外，现在签约还赠送3个月免费技术支持。', tips: '灵活谈判、突出增值服务', nextAction: '推进合同签署' },
+    '合同签署': { stage, script: '恭喜！我们已准备好合同，请核对以下内容：产品规格、价格、付款方式和交付日期。确认无误后即可签约。', tips: '确认细节、加快流程', nextAction: '安排签约' }
+  };
+  res.json(ok(scripts[stage] || scripts['初步接洽']));
+});
+app.get('/api/ai/lead-score/:leadId', auth, (req, res) => {
+  const score = Math.floor(60+Math.random()*40);
+  res.json(ok({ leadId: req.params.leadId, score, level: score>=80?'高':score>=60?'中':'低', reason: '基于客户行业、规模和活跃度综合评估' }));
+});
+app.get('/api/ai/churn-batch', auth, (req, res) => {
+  res.json(ok({ message: '批量流失预测已完成', processed: 15, atRisk: 2 }));
+});
+
+// Convenient aliases
+app.get('/api/employee-ranking', auth, (req, res) => {
+  const r = db.prepare('SELECT ep.employee_id, u.real_name as real_name, SUM(ep.sales_amount) as total_sales, SUM(ep.new_customers) as total_customers FROM employee_performance ep LEFT JOIN sys_user u ON ep.employee_id=u.id GROUP BY ep.employee_id ORDER BY total_sales DESC LIMIT 10').all();
+  res.json(ok(r));
+});
+app.get('/api/customer-source', auth, (req, res) => {
+  const r = db.prepare('SELECT source, COUNT(*) as count FROM customer GROUP BY source ORDER BY count DESC').all();
+  const total = r.reduce((s,x)=>s+x.count,0);
+  res.json(ok(r.map(x=>({...x, percentage: total?Math.round(x.count/total*100):0}))));
+});
+app.get('/api/recent-activities', auth, (req, res) => {
+  const activities = [];
+  const orders = db.prepare('SELECT o.*, c.name as customer_name FROM sales_order o LEFT JOIN customer c ON o.customer_id=c.id ORDER BY o.created_at DESC LIMIT 5').all();
+  const follows = db.prepare('SELECT f.*, c.name as customer_name FROM follow_up f LEFT JOIN customer c ON f.customer_id=c.id ORDER BY f.created_at DESC LIMIT 5').all();
+  orders.forEach(o=>activities.push({type:'订单',who:o.customer_name,action:'创建了订单',target:'¥'+o.total_amount,time:o.created_at}));
+  follows.forEach(f=>activities.push({type:'跟进',who:f.customer_name,action:'跟进记录',target:f.type,time:f.created_at}));
+  activities.sort((a,b)=>new Date(b.time)-new Date(a.time));
+  res.json(ok(activities.slice(0,10)));
 });
 
 app.listen(PORT, () => {

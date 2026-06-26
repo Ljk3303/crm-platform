@@ -18,8 +18,8 @@
       </div>
       <div class="detail-actions">
         <el-input-number v-model="qty" :min="1" :max="99" size="large" style="margin-right:12px"/>
-        <el-button type="primary" size="large" @click="addCart" style="flex:1;height:48px;border-radius:12px">加入购物车</el-button>
-        <el-button size="large" @click="toggleFav" :type="favorited?'warning':''" circle style="margin-left:8px;width:48px;height:48px;font-size:20px">{{ favorited ? '❤️' : '🤍' }}</el-button>
+        <el-button type="primary" size="large" @click="addCart" :loading="addingCart" style="flex:1;height:48px;border-radius:12px">加入购物车</el-button>
+        <el-button size="large" @click="toggleFav" :type="favorited?'warning':''" :loading="togglingFav" circle style="margin-left:8px;width:48px;height:48px;font-size:20px">{{ favorited ? '❤️' : '🤍' }}</el-button>
       </div>
       <div class="detail-meta">
         <div class="meta-item"><span>编码</span><span>{{ product.code }}</span></div>
@@ -43,9 +43,22 @@
       <div style="font-weight:600;margin-bottom:12px">写评价</div>
       <div style="margin-bottom:8px"><el-rate v-model="myRating"/></div>
       <el-input v-model="myReview" type="textarea" :rows="2" placeholder="分享你的使用感受..."/>
-      <el-button type="primary" size="small" @click="submitReview" style="margin-top:8px">发表评价 (+10积分)</el-button>
+      <el-button type="primary" size="small" @click="submitReview" :loading="submitting" style="margin-top:8px">发表评价 (+10积分)</el-button>
     </div>
   </div>
+</div>
+
+<!-- Loading state -->
+<div class="page loading-state" v-else-if="loading">
+  <div class="loading-spinner">⏳</div>
+  <div style="color:#6B7280;margin-top:12px">正在加载商品详情...</div>
+</div>
+
+<!-- Error state -->
+<div class="page error-state" v-else>
+  <div style="font-size:48px">😕</div>
+  <div style="color:#6B7280;margin:12px 0">{{ errorMsg }}</div>
+  <el-button @click="loadProduct" type="primary">重新加载</el-button>
 </div>
 </template>
 
@@ -62,41 +75,82 @@ const qty = ref(1)
 const favorited = ref(false)
 const myRating = ref(5)
 const myReview = ref('')
-const isLoggedIn = !!localStorage.getItem('m_token')
+const isLoggedIn = ref(!!localStorage.getItem('m_token'))
+const loading = ref(true)
+const addingCart = ref(false)
+const togglingFav = ref(false)
+const submitting = ref(false)
+const errorMsg = ref('')
 
 const catEmojis = { '家居': '🏠', '美妆': '💄', '文具': '✏️', '数码': '📱', '服饰': '👗' }
 const catBgs = { '家居': '#F0F9FF', '美妆': '#FDF2F8', '文具': '#F5F3FF', '数码': '#F0FDF4', '服饰': '#FFF7ED' }
 function getEmoji(c) { return catEmojis[c] || '🎁' }
 function getBg(c) { return catBgs[c] || '#F8FAFC' }
 
-onMounted(async () => {
+async function loadProduct() {
+  loading.value = true
+  errorMsg.value = ''
   try {
     const res = await request.get('/products/' + route.params.id)
     product.value = res
     reviews.value = res.reviews || []
     // Record browse
-    if (isLoggedIn) { try { await request.post('/products/' + route.params.id + '/browse') } catch {} }
-  } catch {}
-})
+    if (isLoggedIn.value) {
+      try { await request.post('/products/' + route.params.id + '/browse') } catch {}
+    }
+  } catch (e) {
+    errorMsg.value = e.message || '商品加载失败，请检查网络连接'
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(loadProduct)
 
 async function addCart() {
-  if (!isLoggedIn) return ElMessage.warning('请先登录')
-  try { await request.post('/cart/add', { productId: product.value.id, quantity: qty.value }); ElMessage.success('已加入购物车') } catch {}
+  isLoggedIn.value = !!localStorage.getItem('m_token')
+  if (!isLoggedIn.value) return ElMessage.warning('请先登录')
+  addingCart.value = true
+  try {
+    await request.post('/cart/add', { productId: product.value.id, quantity: qty.value })
+    ElMessage.success('已加入购物车')
+  } catch (e) {
+    ElMessage.error(e.message || '加入购物车失败')
+  } finally {
+    addingCart.value = false
+  }
 }
 
 async function toggleFav() {
-  if (!isLoggedIn) return ElMessage.warning('请先登录')
-  try { const r = await request.post('/products/' + product.value.id + '/favorite'); favorited.value = r.favorited; ElMessage.success(r.favorited ? '已收藏' : '已取消') } catch {}
+  isLoggedIn.value = !!localStorage.getItem('m_token')
+  if (!isLoggedIn.value) return ElMessage.warning('请先登录')
+  togglingFav.value = true
+  try {
+    const r = await request.post('/products/' + product.value.id + '/favorite')
+    favorited.value = r.favorited
+    ElMessage.success(r.favorited ? '已收藏' : '已取消')
+  } catch (e) {
+    ElMessage.error(e.message || '操作失败')
+  } finally {
+    togglingFav.value = false
+  }
 }
 
 async function submitReview() {
   if (!myReview.value.trim()) return ElMessage.warning('请输入评价内容')
+  submitting.value = true
   try {
     await request.post('/products/' + product.value.id + '/review', { rating: myRating.value, content: myReview.value })
     ElMessage.success('评价发表成功！+10积分')
     myReview.value = ''
-    reviews.value = await request.get('/products/' + product.value.id).then(r => r.reviews || [])
-  } catch {}
+    myRating.value = 5
+    const updated = await request.get('/products/' + product.value.id)
+    reviews.value = updated.reviews || []
+  } catch (e) {
+    ElMessage.error(e.message || '评价发表失败')
+  } finally {
+    submitting.value = false
+  }
 }
 </script>
 
@@ -124,4 +178,8 @@ async function submitReview() {
 .rv-stars{font-size:12px}
 .rv-time{font-size:12px;color:#9CA3AF;margin-left:auto}
 .rv-body{font-size:13px;color:#4B5563;line-height:1.6}
+.loading-state{text-align:center;padding:80px 20px}
+.loading-spinner{font-size:48px;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.error-state{text-align:center;padding:80px 20px}
 </style>

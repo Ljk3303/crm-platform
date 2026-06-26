@@ -243,7 +243,7 @@
 import { ref, reactive, nextTick, onMounted, computed, watch } from 'vue'
 import {
   Plus, MagicStick, User, Warning, ChatDotRound, Aim, Promotion, Goods, DataAnalysis,
-  TrendCharts, Star, Document, Histogram, Search, Coin, Refresh, Discount, Bell, Promotion as Promo
+  TrendCharts, Star, Document, Histogram, Search, Coin, Refresh, Discount, Bell, PieChart, Promotion as Promo
 } from '@element-plus/icons-vue'
 import request from '@/utils/request'
 
@@ -359,19 +359,22 @@ function formatContent(s) {
 
 async function loadInsights() {
   try {
-    const stats = await request.get('/dashboard/stats')
-    insight.highValue = stats?.totalOpportunities || stats?.active_opportunities || 0
-    insight.highRisk = 3
+    const dashData = await request.get('/dashboard/stats')
+    insight.highValue = dashData?.totalOpportunities || dashData?.active_opportunities || 0
+    if (dashData) {
+      stats.todayQueries = dashData.customers || dashData.totalCustomers || 0
+      stats.accuracy = dashData.orders ? Math.min(100, Math.round(dashData.orders / (dashData.customers||1) * 100)) : 96
+    }
   } catch {}
   try {
     const source = await request.get('/analytics/customer-source')
-    insight.totalCustomers = source?.reduce((s,r)=>s+r.value, 0) || 0
+    insight.totalCustomers = source?.reduce((s,r)=>s+(r.count||r.value||0), 0) || 0
   } catch {}
   try {
     const rank = await request.get('/analytics/employee-ranking')
     if (rank && rank.length > 0) {
-      insight.topAmount = rank[0].amount
-      insight.topEmployee = rank[0].name
+      insight.topAmount = rank[0].amount || rank[0].total_sales
+      insight.topEmployee = rank[0].name || rank[0].real_name
     }
   } catch {}
 }

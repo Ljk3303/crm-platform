@@ -73,7 +73,7 @@ import BubbleWrap from '@/components/relax/BubbleWrap.vue'
 
 const route = useRoute(); const router = useRouter()
 const isCollapsed = ref(false); const unreadCount = ref(3)
-const userName = ref('管理员'); const searchText = ref('')
+const userName = ref(localStorage.getItem('realName') || '管理员'); const searchText = ref('')
 const relaxVisible = ref(false); const relaxSettingsVisible = ref(false)
 const popVisible = ref(false); const relaxGlow = ref(true); const petRef = ref(null)
 const settings = reactive({ petEnabled:true, drawerEnabled:true, pomodoroEnabled:true, relaxStyle:'cute' })
@@ -82,7 +82,7 @@ setInterval(() => relaxGlow.value = !relaxGlow.value, 8000)
 const activeMenu = computed(() => route.path)
 const currentTitle = computed(() => route.meta?.title || '')
 function popRelax() { popVisible.value = true }
-function handleLogout() { router.push('/login') }
+function handleLogout() { localStorage.removeItem('token'); localStorage.removeItem('realName'); localStorage.removeItem('role'); userName.value = '管理员'; router.push('/login') }
 onMounted(() => { if (petRef.value) petRef.value.resetVisibility() })
 </script>
 

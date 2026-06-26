@@ -439,7 +439,8 @@ async function fetchData() {
     const res = await quotationApi.getQuotations(params)
     tableData.value = res.records || res || QD
     pagination.total = res.total || QD.length
-  } catch {
+  } catch (e) {
+    console.error('fetchData failed', e);
     tableData.value = QD; pagination.total = QD.length
   } finally {
     loading.value = false
@@ -456,9 +457,7 @@ async function fetchOptions() {
     customerOptions.value = cust.records || []
     productOptions.value = prod.records || []
     opportunityOptions.value = opp.records || []
-  } catch {
-    // ignore
-  }
+  } catch (e) { console.error('fetchOptions failed', e); /* ignore */ }
 }
 
 function handleSearch() {
@@ -523,9 +522,7 @@ async function handleEdit(row) {
       remark: i.remark || ''
     })) : [defaultItem()]
     dialogVisible.value = true
-  } catch {
-    ElMessage.error('获取报价详情失败')
-  }
+  } catch (e) { ElMessage.error(e?.message || '获取报价详情失败') }
 }
 
 async function handleSubmitForm() {
@@ -550,9 +547,7 @@ async function handleSubmitForm() {
     }
     dialogVisible.value = false
     fetchData()
-  } catch {
-    ElMessage.error('保存失败')
-  } finally {
+  } catch (e) { ElMessage.error(e?.message || '保存失败') } finally {
     submitting.value = false
   }
 }
@@ -563,9 +558,7 @@ async function handleSubmit(row) {
     await quotationApi.submitQuotation(row.id)
     ElMessage.success('提交成功')
     fetchData()
-  } catch {
-    ElMessage.error('提交失败')
-  }
+  } catch (e) { ElMessage.error(e?.message || '提交失败') }
 }
 
 async function handleApprove(row) {
@@ -574,9 +567,7 @@ async function handleApprove(row) {
     await quotationApi.approveQuotation(row.id)
     ElMessage.success('已批准')
     fetchData()
-  } catch {
-    ElMessage.error('操作失败')
-  }
+  } catch (e) { ElMessage.error(e?.message || '操作失败') }
 }
 
 async function handleReject(row) {
@@ -585,9 +576,7 @@ async function handleReject(row) {
     await quotationApi.rejectQuotation(row.id, { reason: value })
     ElMessage.success('已驳回')
     fetchData()
-  } catch {
-    ElMessage.error('操作失败')
-  }
+  } catch (e) { ElMessage.error(e?.message || '操作失败') }
 }
 
 async function handleConvert(row) {
@@ -596,9 +585,7 @@ async function handleConvert(row) {
     await quotationApi.convertToOrder(row.id)
     ElMessage.success('已转为订单')
     fetchData()
-  } catch {
-    ElMessage.error('转换失败')
-  }
+  } catch (e) { ElMessage.error(e?.message || '转换失败') }
 }
 
 onMounted(() => {

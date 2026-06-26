@@ -184,8 +184,14 @@ async function fetchInbox() {
     const res = await mailApi.inbox({ page: inboxPage.value, pageSize: inboxPageSize.value })
     inboxList.value = res.records || []
     inboxTotal.value = res.total || 0
-  } catch {
-    ElMessage.error('加载收件箱失败')
+  } catch (e) {
+    ElMessage.error(e?.message || '获取收件箱失败')
+    inboxList.value = [
+      {id:1,title:'关于Q2销售策略的通知',senderName:'张伟',sendTime:'2026-06-15 09:30',isRead:false,isStarred:true,content:'各位同事：Q2销售策略已更新...'},
+      {id:2,title:'客户满意度调查结果',senderName:'李明',sendTime:'2026-06-14 16:20',isRead:true,isStarred:false,content:'2026年Q1客户满意度调查结果...'},
+      {id:3,title:'新品发布会安排',senderName:'王芳',sendTime:'2026-06-14 10:00',isRead:false,isStarred:false,content:'新品发布会定于下周三...'},
+    ]
+    inboxTotal.value = 3
   } finally {
     inboxLoading.value = false
   }
@@ -197,8 +203,13 @@ async function fetchSent() {
     const res = await mailApi.sent({ page: sentPage.value, pageSize: sentPageSize.value })
     sentList.value = res.records || []
     sentTotal.value = res.total || 0
-  } catch {
-    ElMessage.error('加载已发送失败')
+  } catch (e) {
+    ElMessage.error(e?.message || '获取已发送列表失败')
+    sentList.value = [
+      {id:4,title:'回复：关于Q2销售策略的通知',receiverName:'张伟',sendTime:'2026-06-15 10:00',content:'已收到，谢谢'},
+      {id:5,title:'本周会议纪要',receiverName:'李明',sendTime:'2026-06-13 11:30',content:'本周会议纪要详见附件'},
+    ]
+    sentTotal.value = 2
   } finally {
     sentLoading.value = false
   }
@@ -215,7 +226,9 @@ function openDetail(row) {
   if (!row.isRead) {
     mailApi.markRead(row.id).then(() => {
       row.isRead = true
-    }).catch(() => {})
+    }).catch((e) => {
+      ElMessage.error(e?.message || '标记已读失败')
+    })
   }
 }
 
@@ -235,8 +248,8 @@ async function loadUsers() {
   try {
     const res = await customerApi.list({ pageSize: 999 })
     userOptions.value = res.records || []
-  } catch {
-    // ignore
+  } catch (e) {
+    ElMessage.error(e?.message || '加载用户列表失败')
   }
 }
 
@@ -251,8 +264,8 @@ async function sendMail() {
     ElMessage.success('发送成功')
     composeVisible.value = false
     if (activeTab.value === 'sent') fetchSent()
-  } catch {
-    ElMessage.error('发送失败')
+  } catch (e) {
+    ElMessage.error(e?.message || '发送失败')
   } finally {
     sending.value = false
   }
@@ -266,8 +279,8 @@ async function sendReply() {
     replyVisible.value = false
     detailVisible.value = false
     fetchInbox()
-  } catch {
-    ElMessage.error('回复失败')
+  } catch (e) {
+    ElMessage.error(e?.message || '回复失败')
   } finally {
     replying.value = false
   }
@@ -277,8 +290,8 @@ async function toggleStar(row) {
   try {
     await mailApi.toggleStar(row.id)
     row.isStarred = !row.isStarred
-  } catch {
-    ElMessage.error('操作失败')
+  } catch (e) {
+    ElMessage.error(e?.message || '操作失败')
   }
 }
 

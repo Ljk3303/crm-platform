@@ -70,6 +70,9 @@ export const productApi = {
   update: (data) => request.put('/products', data),
   delete: (id) => request.delete(`/products/${id}`),
   getPrices: (productId) => request.get(`/products/prices/${productId}`),
+  top: (n = 5) => request.get(`/products/top?n=${n}`),
+  analytics: () => request.get('/products/analytics'),
+  categories: () => request.get('/products/categories'),
 }
 
 // ========== Marketing Activities ==========

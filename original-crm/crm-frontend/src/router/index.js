@@ -135,4 +135,30 @@ const router = createRouter({
   routes
 })
 
+// 鉴权守卫：未登录时重定向到登录页
+router.beforeEach((to, from, next) => {
+  const token = localStorage.getItem('token')
+
+  if (to.meta.noAuth) {
+    // 登录页等不需要鉴权的页面，如果已登录则跳转到首页
+    if (token && to.path === '/login') {
+      next('/dashboard')
+    } else {
+      next()
+    }
+    return
+  }
+
+  if (!token) {
+    // 未登录，跳转到登录页，并保存目标路径用于登录后回跳
+    next({
+      path: '/login',
+      query: { redirect: to.fullPath }
+    })
+    return
+  }
+
+  next()
+})
+
 export default router

@@ -104,15 +104,15 @@ const profileVisible = ref(false); const profile = ref(null)
 function levelType(l) { return {'金卡':'danger','银卡':'warning','普通':''}[l]||'' }
 function fmt(d) { if(!d) return '-'; const t=new Date(d); return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')} ${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}` }
 
-async function fetchData() { loading.value=true; try{const p={page:page.value,size:pageSize.value}; if(searchForm.customerName)p.customerName=searchForm.customerName; if(searchForm.cardLevel)p.cardLevel=searchForm.cardLevel; const r=await getMembers(p); list.value=r.records||[]; total.value=r.total||DEMO.length }catch{list.value=DEMO;total.value=0}finally{loading.value=false} }
+async function fetchData() { loading.value=true; try{const p={page:page.value,size:pageSize.value}; if(searchForm.customerName)p.customerName=searchForm.customerName; if(searchForm.cardLevel)p.cardLevel=searchForm.cardLevel; const r=await getMembers(p); list.value=r.records||[]; total.value=r.total||DEMO.length }catch(e){console.error('fetchData failed',e);list.value=DEMO;total.value=0}finally{loading.value=false} }
 function handleSearch() { page.value=1; fetchData() }
 function handleReset() { searchForm.customerName=''; searchForm.cardLevel=''; page.value=1; fetchData() }
-async function searchCustomers(q) { if(!q){customerOptions.value=[];return}; customerLoading.value=true; try{const r=await getCustomers({page:1,size:20,name:q}); customerOptions.value=r.records||[]}catch{customerOptions.value=[]}finally{customerLoading.value=false} }
+async function searchCustomers(q) { if(!q){customerOptions.value=[];return}; customerLoading.value=true; try{const r=await getCustomers({page:1,size:20,name:q}); customerOptions.value=r.records||[]}catch(e){console.error('searchCustomers failed',e);customerOptions.value=[]}finally{customerLoading.value=false} }
 function openRegisterDialog() { registerCustomerId.value=null; customerOptions.value=[]; registerVisible.value=true }
-async function handleRegister() { if(!registerCustomerId.value){ElMessage.warning('请选择客户');return}; registerLoading.value=true; try{await registerMember({customerId:registerCustomerId.value}); ElMessage.success('注册成功'); registerVisible.value=false; fetchData()}catch{}finally{registerLoading.value=false} }
+async function handleRegister() { if(!registerCustomerId.value){ElMessage.warning('请选择客户');return}; registerLoading.value=true; try{await registerMember({customerId:registerCustomerId.value}); ElMessage.success('注册成功'); registerVisible.value=false; fetchData()}catch(e){ElMessage.error(e?.message||'操作失败')}finally{registerLoading.value=false} }
 function openPointsDialog(row) { currentMember.value=row; pointsForm.type='获取'; pointsForm.points=0; pointsForm.reason=''; pointsVisible.value=true }
-async function handlePoints() { if(!currentMember.value||pointsForm.points<=0){ElMessage.warning('请输入积分');return}; pointsLoading.value=true; try{await updatePoints(currentMember.value.id,{...pointsForm}); ElMessage.success('操作成功'); pointsVisible.value=false; fetchData()}catch{}finally{pointsLoading.value=false} }
-async function openProfile(row) { profileVisible.value=true; profile.value=null; try{const r=await getMemberProfile(row.id); profile.value=r}catch{profile.value=null} }
+async function handlePoints() { if(!currentMember.value||pointsForm.points<=0){ElMessage.warning('请输入积分');return}; pointsLoading.value=true; try{await updatePoints(currentMember.value.id,{...pointsForm}); ElMessage.success('操作成功'); pointsVisible.value=false; fetchData()}catch(e){ElMessage.error(e?.message||'操作失败')}finally{pointsLoading.value=false} }
+async function openProfile(row) { profileVisible.value=true; profile.value=null; try{const r=await getMemberProfile(row.id); profile.value=r}catch(e){console.error('fetch profile failed',e);profile.value=null} }
 onMounted(()=>fetchData())
 </script>
 

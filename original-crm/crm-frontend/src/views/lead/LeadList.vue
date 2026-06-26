@@ -145,7 +145,7 @@ async function fetchLeads() {
     const res = await leadApi.list({ page: pagination.page, pageSize: pagination.pageSize, name: searchForm.name, source: searchForm.source })
     tableData.value = res.records || LD
     pagination.total = res.total || LD.length
-  } catch { tableData.value = LD; pagination.total = LD.length }
+  } catch (e) { console.error('fetchLeads failed', e); tableData.value = LD; pagination.total = LD.length }
   finally { loading.value = false }
 }
 
@@ -154,7 +154,7 @@ async function fetchPool() {
     const res = await leadApi.pool({ page: poolPagination.page, pageSize: poolPagination.pageSize })
     poolData.value = res.records || LD
     poolPagination.total = res.total || LD.length
-  } catch { poolData.value = LD; poolPagination.total = LD.length }
+  } catch (e) { console.error('fetchPool failed', e); poolData.value = LD; poolPagination.total = LD.length }
 }
 
 function onTabChange(tab) { if (tab === 'pool') fetchPool(); else fetchLeads() }
@@ -174,7 +174,7 @@ async function handleSave() {
     ElMessage.success('保存成功')
     dialogVisible.value = false
     fetchLeads()
-  } catch { ElMessage.error('保存失败') }
+  } catch (e) { ElMessage.error(e?.message || '保存失败') }
   finally { submitLoading.value = false }
 }
 
@@ -187,7 +187,7 @@ async function handleConvert() {
     ElMessage.success('转化成功，已创建客户' + (res.customerId||''))
     convertDialogVisible.value = false
     fetchLeads()
-  } catch { ElMessage.error('转化失败') }
+  } catch (e) { ElMessage.error(e?.message || '转化失败') }
   finally { convertLoading.value = false }
 }
 
@@ -202,7 +202,7 @@ async function handleFollow() {
     ElMessage.success('跟进已记录')
     followDialogVisible.value = false
     fetchLeads()
-  } catch { ElMessage.error('保存失败') }
+  } catch (e) { ElMessage.error(e?.message || '保存失败') }
   finally { followLoading.value = false }
 }
 

@@ -109,21 +109,21 @@ const couponForm = reactive({ name:'', discountValue:0, minAmount:0, totalQty:10
 
 function fmt(d) { if(!d) return '-'; const t=new Date(d); return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}` }
 
-async function fetchData() { loading.value=true; try{const p={page:page.value,size:pageSize.value}; if(searchForm.name)p.name=searchForm.name; if(searchForm.status)p.status=searchForm.status; const r=await getCampaigns(p); list.value=r.records||[]; total.value=r.total||DEMO.length }catch{list.value=DEMO;total.value=0}finally{loading.value=false} }
+async function fetchData() { loading.value=true; try{const p={page:page.value,size:pageSize.value}; if(searchForm.name)p.name=searchForm.name; if(searchForm.status)p.status=searchForm.status; const r=await getCampaigns(p); list.value=r.records||[]; total.value=r.total||DEMO.length }catch(e){console.error('fetchData failed',e);list.value=DEMO;total.value=0}finally{loading.value=false} }
 function handleSearch() { page.value=1; fetchData() }
 function handleReset() { searchForm.name=''; searchForm.status=''; page.value=1; fetchData() }
 
 function openCreateDialog() { isEdit.value=false; editId.value=null; form.name=''; form.type='促销'; form.targetGroup='全部'; form.startTime=''; form.endTime=''; form.description=''; dialogVisible.value=true }
 function openEditDialog(row) { isEdit.value=true; editId.value=row.id; Object.assign(form, row); dialogVisible.value=true }
-async function handleSubmit() { if(!formRef.value)return; try{await formRef.value.validate()}catch{return}; submitLoading.value=true; try{isEdit.value?await updateCampaign(editId.value,{...form}):await createCampaign({...form}); ElMessage.success(isEdit.value?'更新成功':'创建成功'); dialogVisible.value=false; fetchData()}catch{}finally{submitLoading.value=false} }
-async function handleDelete(id) { try{await deleteCampaign(id); ElMessage.success('删除成功'); fetchData()}catch{} }
-async function handleDistribute(row) { try{const r=await distributeCoupons(row.id); ElMessage.success(r.message||'发放完成')}catch{} }
+async function handleSubmit() { if(!formRef.value)return; try{await formRef.value.validate()}catch{return}; submitLoading.value=true; try{isEdit.value?await updateCampaign(editId.value,{...form}):await createCampaign({...form}); ElMessage.success(isEdit.value?'更新成功':'创建成功'); dialogVisible.value=false; fetchData()}catch(e){ElMessage.error(e?.message||'操作失败')}finally{submitLoading.value=false} }
+async function handleDelete(id) { try{await deleteCampaign(id); ElMessage.success('删除成功'); fetchData()}catch(e){ElMessage.error(e?.message||'操作失败')} }
+async function handleDistribute(row) { try{const r=await distributeCoupons(row.id); ElMessage.success(r.message||'发放完成')}catch(e){ElMessage.error(e?.message||'发放失败')} }
 
 async function openCouponDialog(row) { currentCampaign.value=row; couponVisible.value=true; couponForm.name=''; couponForm.discountValue=0; couponForm.minAmount=0; couponForm.totalQty=100;
-  try{const r1=await getCoupons(row.id); coupons.value=r1||[]; const r2=await getCouponStats(row.id); couponStats.value=r2}catch{coupons.value=[];couponStats.value=null} }
+  try{const r1=await getCoupons(row.id); coupons.value=r1||[]; const r2=await getCouponStats(row.id); couponStats.value=r2}catch(e){console.error('fetch coupons failed',e);coupons.value=[];couponStats.value=null} }
 async function handleCreateCoupon() { if(!couponForm.name){ElMessage.warning('请输入券名');return}; try{await createCoupon(currentCampaign.value.id,{...couponForm}); ElMessage.success('添加成功');
   couponForm.name=''; couponForm.discountValue=0; couponForm.minAmount=0; couponForm.totalQty=100;
-  const r1=await getCoupons(currentCampaign.value.id); coupons.value=r1||[]; const r2=await getCouponStats(currentCampaign.value.id); couponStats.value=r2 }catch{} }
+  const r1=await getCoupons(currentCampaign.value.id); coupons.value=r1||[]; const r2=await getCouponStats(currentCampaign.value.id); couponStats.value=r2 }catch(e){ElMessage.error(e?.message||'操作失败')} }
 
 onMounted(()=>fetchData())
 </script>

@@ -76,16 +76,16 @@ const allRecords = ref([]); const aLoading = ref(false)
 function sType(s) { return {'未使用':'warning','已使用':'success','已过期':'info'}[s]||'' }
 function fmt(d) { if(!d) return '-'; const t=new Date(d); return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')} ${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}` }
 
-async function fetchAll() { aLoading.value=true; try{const p={}; if(filterStatus.value) p.status=filterStatus.value; const r=await request.get('/coupon-records',{params:p}); allRecords.value=r||[] }catch{allRecords.value=[]}finally{aLoading.value=false} }
+async function fetchAll() { aLoading.value=true; try{const p={}; if(filterStatus.value) p.status=filterStatus.value; const r=await request.get('/coupon-records',{params:p}); allRecords.value=r||[] }catch(e){console.error('fetchAll failed',e);allRecords.value=[]}finally{aLoading.value=false} }
 
 // Customer coupons
 const selectedCustomer = ref(null); const custOptions = ref([]); const custLoading = ref(false)
 const custRecords = ref([]); const cLoading = ref(false)
 
-async function searchCustomers(q) { if(!q){custOptions.value=[];return}; custLoading.value=true; try{const r=await getCustomers({page:1,size:20,name:q}); custOptions.value=r.records||[]}catch{custOptions.value=[]}finally{custLoading.value=false} }
-async function fetchCustCoupons() { if(!selectedCustomer.value){custRecords.value=[];return}; cLoading.value=true; try{const r=await getCustomerCoupons(selectedCustomer.value); custRecords.value=r||[]}catch{custRecords.value=[]}finally{cLoading.value=false} }
+async function searchCustomers(q) { if(!q){custOptions.value=[];return}; custLoading.value=true; try{const r=await getCustomers({page:1,size:20,name:q}); custOptions.value=r.records||[]}catch(e){console.error('searchCustomers failed',e);custOptions.value=[]}finally{custLoading.value=false} }
+async function fetchCustCoupons() { if(!selectedCustomer.value){custRecords.value=[];return}; cLoading.value=true; try{const r=await getCustomerCoupons(selectedCustomer.value); custRecords.value=r||[]}catch(e){console.error('fetchCustCoupons failed',e);custRecords.value=[]}finally{cLoading.value=false} }
 
-async function handleUse(row) { usingId.value=row.recordId; try{await useCoupon(row.recordId); ElMessage.success('核销成功'); activeTab.value==='all'?fetchAll():fetchCustCoupons()}catch{}finally{usingId.value=null} }
+async function handleUse(row) { usingId.value=row.recordId; try{await useCoupon(row.recordId); ElMessage.success('核销成功'); activeTab.value==='all'?fetchAll():fetchCustCoupons()}catch(e){ElMessage.error(e?.message||'操作失败')}finally{usingId.value=null} }
 
 onMounted(()=>fetchAll())
 </script>

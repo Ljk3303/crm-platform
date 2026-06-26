@@ -3,8 +3,8 @@
 <script setup>import {ref,reactive,onMounted} from 'vue';import request from '@/utils/request';import {ElMessage} from 'element-plus';
 const list=ref([]);const showForm=ref(false);const f=reactive({title:'',amount:0,startDate:'',endDate:''});
 function reset(){Object.assign(f,{title:'',amount:0,startDate:'',endDate:''})}
-async function fetch(){try{list.value=await request.get('/contracts')||[]}catch{}}
-async function save(){try{await request.post('/contracts',f);showForm.value=false;fetch();ElMessage.success('已创建')}catch{}}
-async function signContract(row){try{await request.put('/contracts/'+row.id,{...row,status:'已签署',changeLog:'模拟电子签章'});fetch();ElMessage.success('已签署')}catch{}}
+async function fetch(){try{list.value=await request.get('/contracts')||[]}catch(e){ElMessage.error(e?.message||'获取合同列表失败')}}
+async function save(){try{await request.post('/contracts',f);showForm.value=false;fetch();ElMessage.success('已创建')}catch(e){ElMessage.error(e?.message||'创建合同失败')}}
+async function signContract(row){try{await request.put('/contracts/'+row.id,{...row,status:'已签署',changeLog:'模拟电子签章'});fetch();ElMessage.success('已签署')}catch(e){ElMessage.error(e?.message||'签章失败')}}
 onMounted(fetch)</script>
 <style scoped>.mgr{padding:0}</style>

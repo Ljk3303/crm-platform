@@ -51,8 +51,8 @@ async function handleLogin() {
   if (!formRef.value) return
   try { await formRef.value.validate() } catch { return }
   loading.value = true
-  try { const res = await login(form); setToken(res.token); ElMessage.success('登录成功'); router.push('/') }
-  catch { /* interceptor handles */ }
+  try { const res = await login(form); setToken(res.token); localStorage.setItem('realName',res.realName||''); localStorage.setItem('role',res.role||''); ElMessage.success('登录成功'); const redirect = router.currentRoute.value.query.redirect || '/'; router.push(redirect) }
+  catch (e) { ElMessage.error(e?.message || '登录失败，请检查用户名和密码') }
   finally { loading.value = false }
 }
 </script>

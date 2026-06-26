@@ -150,8 +150,8 @@ async function fetchDocuments() {
     const res = await documentApi.list(params)
     documents.value = res.records || []
     total.value = res.total || 0
-  } catch {
-    ElMessage.error('加载文档列表失败')
+  } catch (e) {
+    ElMessage.error(e?.message || '加载文档列表失败')
   } finally {
     loading.value = false
   }
@@ -164,8 +164,8 @@ async function handleUpload({ file }) {
     await documentApi.upload(formData)
     ElMessage.success('上传成功')
     fetchDocuments()
-  } catch {
-    ElMessage.error('上传失败')
+  } catch (e) {
+    ElMessage.error(e?.message || '上传失败')
   }
 }
 
@@ -193,8 +193,8 @@ async function handleDelete(doc) {
     await documentApi.delete(doc.id)
     ElMessage.success('删除成功')
     fetchDocuments()
-  } catch {
-    ElMessage.error('删除失败')
+  } catch (e) {
+    ElMessage.error(e?.message || '删除失败')
   }
 }
 

@@ -378,7 +378,20 @@ async function fetchSchedules() {
       params: { start: startStr, end: endStr }
     })
     schedules.value = res || []
-  } catch { /* ignore */ }
+  } catch (e) {
+    ElMessage.error(e?.message || '获取日程失败')
+    // Demo data fallback
+    const now = new Date()
+    const d1 = formatDate(now)
+    const d2 = formatDate(new Date(now.getTime() + 86400000))
+    const d3 = formatDate(new Date(now.getTime() - 86400000))
+    schedules.value = [
+      {id:1,title:'周会',start_time:d1+' 09:00',end_time:d1+' 10:00',type:'meeting',priority:'high',description:'团队周例会'},
+      {id:2,title:'客户拜访',start_time:d1+' 14:00',end_time:d1+' 15:30',type:'visit',priority:'medium',description:'拜访陈思雨'},
+      {id:3,title:'方案评审',start_time:d2+' 10:00',end_time:d2+' 11:00',type:'meeting',priority:'high',description:'Q2方案评审'},
+      {id:4,title:'合同签署',start_time:d3+' 16:00',end_time:d3+' 17:00',type:'other',priority:'medium',description:'签署合作协议'},
+    ]
+  }
 }
 
 function showScheduleDialog(date) {
@@ -421,8 +434,8 @@ async function submitSchedule() {
     }
     scheduleDialogVisible.value = false
     fetchSchedules()
-  } catch {
-    ElMessage.error('操作失败')
+  } catch (e) {
+    ElMessage.error(e?.message || '日程操作失败')
   } finally {
     scheduleSubmitting.value = false
   }
@@ -434,8 +447,8 @@ async function deleteSchedule() {
     ElMessage.success('删除成功')
     scheduleDialogVisible.value = false
     fetchSchedules()
-  } catch {
-    ElMessage.error('删除失败')
+  } catch (e) {
+    ElMessage.error(e?.message || '删除日程失败')
   }
 }
 
@@ -451,8 +464,8 @@ async function fetchTasks() {
     const data = res || {}
     tasks.value = data.list || data.records || []
     taskPagination.total = data.total || 0
-  } catch {
-    ElMessage.error('获取任务失败')
+  } catch (e) {
+    ElMessage.error(e?.message || '获取任务列表失败')
   } finally {
     tasksLoading.value = false
   }
@@ -494,8 +507,8 @@ async function submitTask() {
     }
     taskDialogVisible.value = false
     fetchTasks()
-  } catch {
-    ElMessage.error('操作失败')
+  } catch (e) {
+    ElMessage.error(e?.message || '任务操作失败')
   } finally {
     taskSubmitting.value = false
   }
@@ -506,8 +519,8 @@ async function deleteTask(row) {
     await request.delete(`/tasks/${row.id}`)
     ElMessage.success('删除成功')
     fetchTasks()
-  } catch {
-    ElMessage.error('删除失败')
+  } catch (e) {
+    ElMessage.error(e?.message || '删除任务失败')
   }
 }
 

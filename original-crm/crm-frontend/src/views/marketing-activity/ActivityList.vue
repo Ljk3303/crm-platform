@@ -182,7 +182,8 @@ async function fetchData() {
     const data = res || {}
     tableData.value = data.list || data.records || AD
     pagination.total = data.total || AD.length
-  } catch {
+  } catch (e) {
+    ElMessage.error(e?.message || '获取活动列表失败')
     tableData.value = AD; pagination.total = AD.length
   } finally {
     loading.value = false
@@ -245,8 +246,8 @@ async function handleDelete(row) {
     await request.delete(`/marketing-activities/${row.id}`)
     ElMessage.success('删除成功')
     fetchData()
-  } catch {
-    ElMessage.error('删除失败')
+  } catch (e) {
+    ElMessage.error(e?.message || '删除失败')
   }
 }
 
@@ -264,8 +265,8 @@ async function handleSubmit() {
     }
     dialogVisible.value = false
     fetchData()
-  } catch {
-    ElMessage.error('操作失败')
+  } catch (e) {
+    ElMessage.error(e?.message || '操作失败')
   } finally {
     submitting.value = false
   }

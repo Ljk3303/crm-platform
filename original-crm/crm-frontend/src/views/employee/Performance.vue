@@ -26,13 +26,14 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { ElMessage } from 'element-plus'
 import { getPerformance } from '../../api/employee'
 
 const DEMO = [{name:"张伟",deals:21,amount:57700,newCustomers:8,followUpCount:45},{name:"李明",deals:15,amount:53300,newCustomers:5,followUpCount:32},{name:"王芳",deals:14,amount:37600,newCustomers:6,followUpCount:28},{name:"管理员",deals:14,amount:27900,newCustomers:4,followUpCount:38}]
 const month = ref(new Date().toISOString().slice(0,7))
 const list = ref([]); const loading = ref(false)
 
-async function fetchData() { loading.value=true; try{const r=await getPerformance(month.value); list.value=Array.isArray(r)?r:(r?.data||[])}catch{list.value=DEMO}finally{loading.value=false} }
+async function fetchData() { loading.value=true; try{const r=await getPerformance(month.value); list.value=Array.isArray(r)?r:(r?.data||[])}catch(e){list.value=DEMO;ElMessage.error(e?.message||'获取业绩数据失败')}finally{loading.value=false} }
 onMounted(()=>fetchData())
 </script>
 

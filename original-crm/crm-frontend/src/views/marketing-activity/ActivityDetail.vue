@@ -250,8 +250,8 @@ async function fetchActivity() {
   try {
     const res = await request.get(`/marketing-activities/${activityId}`)
     activity.value = res || {}
-  } catch {
-    ElMessage.error('获取活动信息失败')
+  } catch (e) {
+    ElMessage.error(e?.message || '获取活动信息失败')
   }
 }
 
@@ -260,8 +260,9 @@ async function fetchLeads() {
   try {
     const res = await request.get(`/marketing-activities/${activityId}/leads`)
     leads.value = res || []
-  } catch { /* ignore */ }
-  finally { leadsLoading.value = false }
+  } catch (e) {
+    ElMessage.error(e?.message || '获取关联线索失败')
+  } finally { leadsLoading.value = false }
 }
 
 async function fetchOpportunities() {
@@ -269,8 +270,9 @@ async function fetchOpportunities() {
   try {
     const res = await request.get(`/marketing-activities/${activityId}/opportunities`)
     opportunities.value = res || []
-  } catch { /* ignore */ }
-  finally { oppsLoading.value = false }
+  } catch (e) {
+    ElMessage.error(e?.message || '获取关联商机失败')
+  } finally { oppsLoading.value = false }
 }
 
 async function fetchExpenses() {
@@ -278,15 +280,18 @@ async function fetchExpenses() {
   try {
     const res = await request.get(`/marketing-activities/${activityId}/expenses`)
     expenses.value = res || []
-  } catch { /* ignore */ }
-  finally { expensesLoading.value = false }
+  } catch (e) {
+    ElMessage.error(e?.message || '获取费用列表失败')
+  } finally { expensesLoading.value = false }
 }
 
 async function fetchAnalysis() {
   try {
     const res = await request.get(`/marketing-activities/${activityId}/analysis`)
     analysis.value = res || {}
-  } catch { /* ignore */ }
+  } catch (e) {
+    ElMessage.error(e?.message || '获取分析数据失败')
+  }
 }
 
 function showExpenseDialog() {
@@ -303,8 +308,8 @@ async function submitExpense() {
     ElMessage.success('新增成功')
     expenseDialogVisible.value = false
     fetchExpenses()
-  } catch {
-    ElMessage.error('操作失败')
+  } catch (e) {
+    ElMessage.error(e?.message || '新增费用失败')
   } finally {
     expenseSubmitting.value = false
   }
@@ -323,8 +328,8 @@ async function generateCopy() {
       target_type: copyForm.target_type
     })
     copyResults.value = res && res.copies ? res.copies : []
-  } catch {
-    ElMessage.error('生成失败')
+  } catch (e) {
+    ElMessage.error(e?.message || '生成失败')
   } finally {
     copyGenerating.value = false
   }
@@ -334,8 +339,8 @@ async function copyText(text) {
   try {
     await navigator.clipboard.writeText(text)
     ElMessage.success('已复制')
-  } catch {
-    ElMessage.error('复制失败')
+  } catch (e) {
+    ElMessage.error(e?.message || '复制失败')
   }
 }
 

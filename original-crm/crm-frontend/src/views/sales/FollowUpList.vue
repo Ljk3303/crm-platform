@@ -90,13 +90,13 @@ const completeRules = { actualTime:[{required:true,message:'请选择时间',tri
 function statusType(s) { return {'待处理':'warning','处理中':'primary','已完成':'success'}[s]||'' }
 function fmt(d) { if(!d) return '-'; const t=new Date(d); return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')} ${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}` }
 
-async function fetchData() { loading.value=true; try{const p={page:page.value,size:pageSize.value,type:activeTab.value}; if(searchForm.status) p.status=searchForm.status; const r=await getFollowUps(p); list.value=r.records||[]; total.value=r.total||DEMO.length }catch{list.value=DEMO;total.value=0}finally{loading.value=false} }
+async function fetchData() { loading.value=true; try{const p={page:page.value,size:pageSize.value,type:activeTab.value}; if(searchForm.status) p.status=searchForm.status; const r=await getFollowUps(p); list.value=r.records||[]; total.value=r.total||DEMO.length }catch(e){console.error('fetchData failed',e);list.value=DEMO;total.value=0}finally{loading.value=false} }
 function handleTabChange() { page.value=1; fetchData() }
 function handleSearch() { page.value=1; fetchData() }
 function handleReset() { searchForm.status=''; page.value=1; fetchData() }
-async function searchCustomers(q) { if(!q){customerOptions.value=[];return}; customerLoading.value=true; try{const r=await getCustomers({page:1,size:20,name:q}); customerOptions.value=r.records||[]}catch{customerOptions.value=[]}finally{customerLoading.value=false} }
+async function searchCustomers(q) { if(!q){customerOptions.value=[];return}; customerLoading.value=true; try{const r=await getCustomers({page:1,size:20,name:q}); customerOptions.value=r.records||[]}catch(e){console.error('searchCustomers failed',e);customerOptions.value=[]}finally{customerLoading.value=false} }
 function openCreateDialog() { createForm.customerId=null; createForm.type=activeTab.value; createForm.planTime=''; createForm.content=''; customerOptions.value=[]; createVisible.value=true }
-async function handleCreate() { if(!createFormRef.value)return; try{await createFormRef.value.validate()}catch{return}; submitLoading.value=true; try{await createFollowUp({...createForm}); ElMessage.success('创建成功'); createVisible.value=false; fetchData()}catch{}finally{submitLoading.value=false} }
+async function handleCreate() { if(!createFormRef.value)return; try{await createFormRef.value.validate()}catch{return}; submitLoading.value=true; try{await createFollowUp({...createForm}); ElMessage.success('创建成功'); createVisible.value=false; fetchData()}catch(e){ElMessage.error(e?.message||'操作失败')}finally{submitLoading.value=false} }
 function openCompleteDialog(row) { currentFollowUpId.value=row.id; completeForm.actualTime=new Date().toISOString().slice(0,19); completeForm.content=row.content||''; completeVisible.value=true }
 async function handleComplete() { if(!completeFormRef.value)return; try{await completeFormRef.value.validate()}catch{return}; completeLoading.value=true; try{await updateFollowUp(currentFollowUpId.value,{actualTime:completeForm.actualTime,content:completeForm.content,status:'已完成'}); ElMessage.success('已完成'); completeVisible.value=false; fetchData()}catch{}finally{completeLoading.value=false} }
 onMounted(() => fetchData())

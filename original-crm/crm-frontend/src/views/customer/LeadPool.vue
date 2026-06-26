@@ -58,14 +58,14 @@ async function fetchData() {
     if(searchForm.level) p.level = searchForm.level
     const res = await getPoolCustomers(p)
     poolList.value = res.records || []; total.value = res.total || 0
-  } catch { poolList.value=DEMO; total.value=0 }
+  } catch (e) { console.error('fetchData failed', e); poolList.value=DEMO; total.value=0 }
   finally { loading.value=false }
 }
 function handleSearch() { page.value=1; fetchData() }
 function handleReset() { searchForm.name=''; searchForm.phone=''; searchForm.level=''; page.value=1; fetchData() }
 async function handleClaim(row) {
   claimingId.value=row.id
-  try { await claimCustomer(row.id); ElMessage.success('领取成功'); fetchData() } catch {}
+  try { await claimCustomer(row.id); ElMessage.success('领取成功'); fetchData() } catch (e) { ElMessage.error(e?.message || '领取失败') }
   finally { claimingId.value=null }
 }
 onMounted(() => fetchData())

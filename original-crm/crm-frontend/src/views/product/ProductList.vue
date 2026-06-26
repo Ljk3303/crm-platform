@@ -296,12 +296,12 @@ function formatMoney(val) {
 
 function getFirstImage(images) {
   if (!images) return ''
-  try { const arr = JSON.parse(images); return arr[0] || '' } catch { return images.startsWith('/') ? images : '' }
+  try { const arr = JSON.parse(images); return arr[0] || '' } catch (e) { console.error('JSON.parse images failed', e); return images.startsWith('/') ? images : '' }
 }
 
 function getImageList(images) {
   if (!images) return []
-  try { return JSON.parse(images) } catch { return images.startsWith('/') ? [images] : [] }
+  try { return JSON.parse(images) } catch (e) { console.error('JSON.parse images failed', e); return images.startsWith('/') ? [images] : [] }
 }
 
 function beforeUpload(file) {
@@ -337,7 +337,7 @@ async function fetchData() {
       tableData.value.forEach(p => { if (p.category) cats.add(p.category) })
       categoryOptions.value = Array.from(cats)
     }
-  } catch { tableData.value = PD; pagination.total = PD.length } finally { loading.value = false }
+  } catch (e) { console.error('fetchData failed', e); tableData.value = PD; pagination.total = PD.length } finally { loading.value = false }
 }
 
 function handleSearch() { pagination.page = 1; fetchData() }
@@ -378,12 +378,12 @@ async function handleSubmitForm() {
     }
     dialogVisible.value = false
     fetchData()
-  } catch { ElMessage.error('保存失败') } finally { submitting.value = false }
+  } catch (e) { ElMessage.error('保存失败: ' + (e?.message || '网络错误，请检查后端服务是否启动')) } finally { submitting.value = false }
 }
 
 async function handleDelete(row) {
   await ElMessageBox.confirm(`确认删除产品 "${row.name}"?`, '确认删除', { type: 'warning' })
-  try { await productApi.deleteProduct(row.id); ElMessage.success('删除成功'); fetchData() } catch { ElMessage.error('删除失败') }
+  try { await productApi.deleteProduct(row.id); ElMessage.success('删除成功'); fetchData() } catch (e) { ElMessage.error('删除失败: ' + (e?.message || '网络错误')) }
 }
 
 async function handlePriceStrategy(row) {
@@ -393,7 +393,7 @@ async function handlePriceStrategy(row) {
     strategies.value = (res || []).map(s => ({
       id: s.id, customer_level: s.customer_level, price: s.price || 0, discount_rate: s.discount_rate || 0, remark: s.remark || ''
     }))
-  } catch { strategies.value = [] }
+  } catch (e) { console.error('fetch strategies failed', e); strategies.value = [] }
   strategyVisible.value = true
 }
 

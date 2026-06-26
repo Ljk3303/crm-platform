@@ -121,14 +121,14 @@ async function fetchData() {
     if(searchForm.status) p.status = searchForm.status
     const res = await getOrders(p)
     orderList.value = res.records || DEMO_ORDERS; total.value = res.total || DEMO_ORDERS.length
-  } catch { orderList.value = DEMO_ORDERS; total.value = DEMO_ORDERS.length } finally { loading.value=false }
+  } catch (e) { console.error('fetchData failed', e); orderList.value = DEMO_ORDERS; total.value = DEMO_ORDERS.length } finally { loading.value=false }
 }
 function handleSearch() { page.value=1; fetchData() }
 function handleReset() { searchForm.customerName=''; searchForm.status=''; page.value=1; fetchData() }
-async function searchCustomers(q) { if(!q){customerOptions.value=[];return}; customerLoading.value=true; try { const r=await getCustomers({page:1,size:20,name:q}); customerOptions.value=r.records||[] } catch { customerOptions.value=[] } finally { customerLoading.value=false } }
+async function searchCustomers(q) { if(!q){customerOptions.value=[];return}; customerLoading.value=true; try { const r=await getCustomers({page:1,size:20,name:q}); customerOptions.value=r.records||[] } catch (e) { console.error('searchCustomers failed', e); customerOptions.value=[] } finally { customerLoading.value=false } }
 function openCreateDialog() { form.customerId=null; form.totalAmount=0; form.status='待付款'; form.remark=''; form.items=[{productName:'',qty:1,price:0}]; customerOptions.value=[]; dialogVisible.value=true }
-async function handleSubmit() { if(!formRef.value) return; try{await formRef.value.validate()}catch{return}; submitLoading.value=true; try{await createOrder({...form}); ElMessage.success('创建成功'); dialogVisible.value=false; fetchData()}catch{}finally{submitLoading.value=false} }
-async function viewDetail(row) { detailVisible.value=true; detailLoading.value=true; detailData.value=null; try{const r=await getOrder(row.id); detailData.value=r}catch{detailData.value=null}finally{detailLoading.value=false} }
+async function handleSubmit() { if(!formRef.value) return; try{await formRef.value.validate()}catch{return}; submitLoading.value=true; try{await createOrder({...form}); ElMessage.success('创建成功'); dialogVisible.value=false; fetchData()}catch(e){ElMessage.error(e?.message||'操作失败')}finally{submitLoading.value=false} }
+async function viewDetail(row) { detailVisible.value=true; detailLoading.value=true; detailData.value=null; try{const r=await getOrder(row.id); detailData.value=r}catch(e){console.error('viewDetail failed',e);detailData.value=null}finally{detailLoading.value=false} }
 onMounted(() => fetchData())
 </script>
 

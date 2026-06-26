@@ -43,32 +43,85 @@
         </el-descriptions>
       </div>
     </template>
+
+    <!-- Edit Dialog -->
+    <el-dialog v-model="dialogVisible" title="编辑客户" width="520px" destroy-on-close>
+      <el-form :model="editForm" label-width="80px">
+        <el-form-item label="姓名"><el-input v-model="editForm.name" /></el-form-item>
+        <el-form-item label="电话"><el-input v-model="editForm.phone" /></el-form-item>
+        <el-form-item label="邮箱"><el-input v-model="editForm.email" /></el-form-item>
+        <el-form-item label="行业"><el-input v-model="editForm.industry" /></el-form-item>
+        <el-form-item label="来源">
+          <el-select v-model="editForm.source" style="width:100%">
+            <el-option v-for="s in sources" :key="s" :label="s" :value="s" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="等级">
+          <el-select v-model="editForm.level" style="width:100%">
+            <el-option v-for="l in levels" :key="l" :label="l" :value="l" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="地址"><el-input v-model="editForm.address" /></el-form-item>
+        <el-form-item label="备注"><el-input v-model="editForm.remark" type="textarea" :rows="3" /></el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="saving" @click="handleSubmit">保存</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArrowLeft, Coin, Edit } from '@element-plus/icons-vue'
-import { getCustomer, claimCustomer } from '../../api/customer'
+import { getCustomer, claimCustomer, updateCustomer } from '../../api/customer'
 
 const route = useRoute(); const router = useRouter()
 const loading = ref(true); const customer = ref(null)
 function levelType(l) { return {'高价值':'danger','普通':'','沉睡':'info'}[l]||'' }
 const leadInfo = computed(() => customer.value?.leadInfo || {})
 const leadStatusType = computed(() => ({'已跟进':'success','跟进中':'warning'}[leadInfo.value?.followStatus]||'info'))
+const dialogVisible = ref(false)
+const saving = ref(false)
+const sources = ['门店','小程序','地推','网站','转介','展会','活动']
+const levels = ['普通','高价值','沉睡']
+const editForm = reactive({ name:'',phone:'',email:'',industry:'',source:'',level:'普通',address:'',remark:'' })
 
 async function fetchDetail() {
   loading.value=true
   try { const res = await getCustomer(route.params.id); customer.value = res || null }
-  catch { customer.value=null }
+  catch (e) { console.error('fetchDetail failed', e); customer.value=null }
   finally { loading.value=false }
 }
-async function handleClaim() { try { await claimCustomer(route.params.id); ElMessage.success('领取成功'); fetchDetail() } catch {} }
-async function handleEdit() {
-  try { await ElMessageBox({ title:'提示', message:'请在客户列表页进行编辑', type:'info', confirmButtonText:'去列表页', showCancelButton:true }); router.push('/customers') }
-  catch {}
+async function handleClaim() { try { await claimCustomer(route.params.id); ElMessage.success('领取成功'); fetchDetail() } catch (e) { ElMessage.error(e?.message || '领取失败') } }
+function handleEdit() {
+  Object.assign(editForm, {
+    name: customer.value.name || '',
+    phone: customer.value.phone || '',
+    email: customer.value.email || '',
+    industry: customer.value.industry || '',
+    source: customer.value.source || '',
+    level: customer.value.level || '普通',
+    address: customer.value.address || '',
+    remark: customer.value.remark || ''
+  })
+  dialogVisible.value = true
+}
+async function handleSubmit() {
+  saving.value = true
+  try {
+    await updateCustomer(route.params.id, editForm)
+    ElMessage.success('保存成功')
+    dialogVisible.value = false
+    fetchDetail()
+  } catch (e) {
+    ElMessage.error('保存失败: ' + (e?.message || '请检查网络连接'))
+  } finally {
+    saving.value = false
+  }
 }
 onMounted(() => fetchDetail())
 </script>

@@ -279,8 +279,8 @@ async function fetchPending() {
   try {
     const res = await approvalApi.pending()
     pendingList.value = res.records || res || []
-  } catch {
-    ElMessage.error('加载待审批列表失败')
+  } catch (e) {
+    ElMessage.error(e?.message || '加载待审批列表失败')
   } finally {
     pendingLoading.value = false
   }
@@ -294,8 +294,8 @@ async function fetchProcessed() {
     processedList.value = allFlows.filter(
       item => item.result === 'approved' || item.result === 'rejected' || item.status === 'processed'
     )
-  } catch {
-    ElMessage.error('加载已处理列表失败')
+  } catch (e) {
+    ElMessage.error(e?.message || '加载已处理列表失败')
   } finally {
     processedLoading.value = false
   }
@@ -306,8 +306,8 @@ async function fetchSubmitted() {
   try {
     const res = await approvalApi.flows()
     submittedList.value = res.records || res || []
-  } catch {
-    ElMessage.error('加载我发起的列表失败')
+  } catch (e) {
+    ElMessage.error(e?.message || '加载我发起的列表失败')
   } finally {
     submittedLoading.value = false
   }
@@ -341,8 +341,8 @@ async function handleApprove() {
     ElMessage.success('审批通过')
     approveVisible.value = false
     fetchPending()
-  } catch {
-    ElMessage.error('操作失败')
+  } catch (e) {
+    ElMessage.error(e?.message || '审批操作失败')
   } finally {
     approving.value = false
   }
@@ -362,8 +362,8 @@ async function handleReject() {
     ElMessage.success('已驳回')
     rejectVisible.value = false
     fetchPending()
-  } catch {
-    ElMessage.error('操作失败')
+  } catch (e) {
+    ElMessage.error(e?.message || '驳回操作失败')
   } finally {
     rejecting.value = false
   }
@@ -398,8 +398,8 @@ async function handleSubmit() {
     ElMessage.success('提交成功')
     submitVisible.value = false
     fetchSubmitted()
-  } catch {
-    ElMessage.error('提交失败')
+  } catch (e) {
+    ElMessage.error(e?.message || '提交失败')
   } finally {
     submitting.value = false
   }

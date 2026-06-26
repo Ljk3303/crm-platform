@@ -171,7 +171,8 @@ async function fetchData() {
     const data = res || {}
     tableData.value = data.list || data.records || ND
     pagination.total = data.total || ND.length
-  } catch {
+  } catch (e) {
+    ElMessage.error(e?.message || '获取公告列表失败')
     tableData.value = ND; pagination.total = ND.length
   } finally {
     loading.value = false
@@ -183,7 +184,8 @@ async function handleView(row) {
     const res = await noticeApi.getById(row.id)
     currentNotice.value = res || row
     viewVisible.value = true
-  } catch {
+  } catch (e) {
+    ElMessage.error(e?.message || '获取公告详情失败')
     currentNotice.value = row
     viewVisible.value = true
   }
@@ -221,8 +223,8 @@ async function handleSubmit() {
     }
     dialogVisible.value = false
     fetchData()
-  } catch {
-    ElMessage.error('操作失败')
+  } catch (e) {
+    ElMessage.error(e?.message || '操作失败')
   } finally {
     submitting.value = false
   }
@@ -233,8 +235,8 @@ async function handleDelete(row) {
     await noticeApi.delete(row.id)
     ElMessage.success('删除成功')
     fetchData()
-  } catch {
-    ElMessage.error('删除失败')
+  } catch (e) {
+    ElMessage.error(e?.message || '删除失败')
   }
 }
 

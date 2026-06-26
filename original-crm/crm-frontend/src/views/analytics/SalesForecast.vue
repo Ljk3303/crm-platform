@@ -188,28 +188,26 @@ async function fetchForecastData() {
     const res = await aiApi.salesForecast()
     const data = res || {}
 
-    // Set history data (12 months)
+    // Backend returns [{month, amount}, ...] - extract amount values
+    const extractAmounts = (arr) => arr.map(v => typeof v === 'object' ? (v.amount || 0) : (v || 0))
+
     if (data.history && data.history.length) {
-      historyData.value = data.history.slice(0, 12)
-      historyTotal.value = historyData.value.reduce((sum, v) => sum + Number(v || 0), 0)
+      historyData.value = extractAmounts(data.history.slice(0, 12))
     } else if (data.historyData && data.historyData.length) {
-      historyData.value = data.historyData.slice(0, 12)
-      historyTotal.value = historyData.value.reduce((sum, v) => sum + Number(v || 0), 0)
+      historyData.value = extractAmounts(data.historyData.slice(0, 12))
     } else {
-      // Fallback sample data
       historyData.value = generateSampleHistory()
-      historyTotal.value = historyData.value.reduce((sum, v) => sum + Number(v || 0), 0)
     }
 
-    // Set forecast data (3 months)
     if (data.forecast && data.forecast.length) {
-      forecastData.value = data.forecast.slice(0, 3)
+      forecastData.value = extractAmounts(data.forecast.slice(0, 3))
     } else if (data.forecastData && data.forecastData.length) {
-      forecastData.value = data.forecastData.slice(0, 3)
+      forecastData.value = extractAmounts(data.forecastData.slice(0, 3))
     } else {
       forecastData.value = generateSampleForecast(historyData.value)
     }
 
+    historyTotal.value = historyData.value.reduce((sum, v) => sum + Number(v || 0), 0)
     forecastTotal.value = forecastData.value.reduce((sum, v) => sum + Number(v || 0), 0)
 
     // Calculate growth rate

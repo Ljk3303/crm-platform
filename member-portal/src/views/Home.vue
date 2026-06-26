@@ -160,12 +160,12 @@ const groupBuys = ref([])
 let autoSlide = null
 let swiperTimer = null
 
-const banners = [
+const banners = ref([
   { bg:'linear-gradient(135deg,#1a1a2e 0%,#2d1b3d 100%)', tag:'新品上市', title:'2026 春季新品', desc:'全场满200减50 · 会员折上折', link:'/products', btn:'立即抢购', emoji:'🛍️' },
   { bg:'linear-gradient(135deg,#dc2626 0%,#991b1b 100%)', tag:'限时秒杀', title:'会员日特惠', desc:'精选爆款低至5折 · 限时24小时', link:'/coupons', btn:'领券抢购', emoji:'🔥' },
   { bg:'linear-gradient(135deg,#0f766e 0%,#0d9488 100%)', tag:'学生专属', title:'大学生认证福利', desc:'学生认证送100积分 · 专属折扣', link:'/student-verify', btn:'立即认证', emoji:'🎓' },
   { bg:'linear-gradient(135deg,#d97706 0%,#b45309 100%)', tag:'拼团优惠', title:'3人成团更便宜', desc:'低至6折 · 分享好友一起省', link:'/group-buy', btn:'开团拼单', emoji:'👥' },
-]
+])
 
 const statsData = [
   { num:'2.8', unit:'万', label:'注册会员' },
@@ -222,6 +222,7 @@ onMounted(async () => {
 
   try {
     const res = await request.get('/public/home-data')
+    if (res?.banners?.length) banners.value = res.banners
     if (res?.hotProducts?.length) hotProducts.value = res.hotProducts
     if (res?.tiers?.length) tiers.value = res.tiers
     if (res?.groupBuys?.length) groupBuys.value = res.groupBuys

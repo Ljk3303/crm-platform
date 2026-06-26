@@ -49,8 +49,8 @@ const completingId = ref(null)
 
 function fmt(d) { if(!d) return '-'; const t=new Date(d); return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')} ${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}` }
 
-async function fetchData() { loading.value=true; try{const p={page:page.value,size:pageSize.value}; if(filterStatus.value)p.status=filterStatus.value; const r=await getTodos(p); list.value=r.records||[]; total.value=r.total||DEMO.length }catch{list.value=DEMO;total.value=0}finally{loading.value=false} }
-async function handleComplete(row) { completingId.value=row.id; try{await completeTodo(row.id); ElMessage.success('已完成'); fetchData()}catch{}finally{completingId.value=null} }
+async function fetchData() { loading.value=true; try{const p={page:page.value,size:pageSize.value}; if(filterStatus.value)p.status=filterStatus.value; const r=await getTodos(p); list.value=r.records||[]; total.value=r.total||DEMO.length }catch(e){ElMessage.error(e?.message||'获取待办列表失败');list.value=DEMO;total.value=0}finally{loading.value=false} }
+async function handleComplete(row) { completingId.value=row.id; try{await completeTodo(row.id); ElMessage.success('已完成'); fetchData()}catch(e){ElMessage.error(e?.message||'完成任务失败')}finally{completingId.value=null} }
 onMounted(()=>fetchData())
 </script>
 
