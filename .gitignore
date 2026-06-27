@@ -14,3 +14,11 @@ __pycache__/
 **/public/icons/
 !**/public/
 *.map
+
+
+-/ 
+.workbuddy/ 
+package-lock.json
+node_modules/
+dist/
+
